@@ -68,9 +68,9 @@ function maskToLabels(mask: number): string {
 }
 
 const CATEGORY_BADGES: Record<string, { label: string; color: string; glow: string; accent: string }> = {
-  dao: { label: "DAO", color: "text-tertiary bg-tertiary/10", glow: "bg-tertiary/8", accent: "from-tertiary/20 to-transparent" },
-  defi: { label: "DeFi", color: "text-secondary bg-secondary/10", glow: "bg-secondary/8", accent: "from-secondary/20 to-transparent" },
-  corporate: { label: "Corporate", color: "text-primary bg-primary/10", glow: "bg-primary/8", accent: "from-primary/20 to-transparent" },
+  dao: { label: "DAO", color: "text-tertiary bg-tertiary/10", glow: "bg-tertiary/10", accent: "from-tertiary/20 to-transparent" },
+  defi: { label: "DeFi", color: "text-secondary bg-secondary/10", glow: "bg-secondary/10", accent: "from-secondary/20 to-transparent" },
+  corporate: { label: "Corporate", color: "text-primary bg-primary/10", glow: "bg-primary/10", accent: "from-primary/20 to-transparent" },
   other: {
     label: "Other",
     color: "text-on-surface-variant bg-surface-container",

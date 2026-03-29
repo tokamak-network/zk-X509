@@ -187,7 +187,7 @@ export default function DashboardContent() {
               </code>
             </div>
             {/* Chain / Registry / Owner */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-surface-container-low/50 rounded-xl p-2.5">
                 <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-0.5">
                   Chain
