@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ethers } from "ethers";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -67,13 +67,15 @@ function decodeMask(mask: number): string[] {
 
 export default function RegistryDetailPage() {
   const params = useParams<{ address: string }>();
+  const searchParams = useSearchParams();
   const address = params.address;
   const { isOwner } = useWallet();
 
+  const initialTab = (searchParams.get("tab") as PageTab) || "register";
   const [info, setInfo] = useState<RegistryInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<PageTab>("register");
+  const [activeTab, setActiveTab] = useState<PageTab>(initialTab);
 
   // Platform backend data
   const [metadata, setMetadata] = useState<RegistryMetadata | null>(null);

@@ -64,16 +64,18 @@ function maskToLabels(mask: number): string {
   const labels = DISCLOSURE_FIELDS.filter((f) => mask & (1 << f.bit)).map(
     (f) => f.label,
   );
-  return labels.length > 0 ? labels.join(", ") : "None";
+  return labels.length > 0 ? labels.join(", ") : "Full";
 }
 
-const CATEGORY_BADGES: Record<string, { label: string; color: string }> = {
-  dao: { label: "DAO", color: "text-tertiary bg-tertiary/10" },
-  defi: { label: "DeFi", color: "text-secondary bg-secondary/10" },
-  corporate: { label: "Corporate", color: "text-primary bg-primary/10" },
+const CATEGORY_BADGES: Record<string, { label: string; color: string; glow: string; accent: string }> = {
+  dao: { label: "DAO", color: "text-tertiary bg-tertiary/10", glow: "bg-tertiary/8", accent: "from-tertiary/20 to-transparent" },
+  defi: { label: "DeFi", color: "text-secondary bg-secondary/10", glow: "bg-secondary/8", accent: "from-secondary/20 to-transparent" },
+  corporate: { label: "Corporate", color: "text-primary bg-primary/10", glow: "bg-primary/8", accent: "from-primary/20 to-transparent" },
   other: {
     label: "Other",
     color: "text-on-surface-variant bg-surface-container",
+    glow: "bg-tertiary/5",
+    accent: "from-tertiary/10 to-transparent",
   },
 };
 
@@ -237,7 +239,7 @@ export default function DashboardPage() {
       } catch (e) {
         console.error("Failed to load registries:", e);
         if (!cancelled) {
-          setError("Failed to load registries from factory contract.");
+          setError("Failed to load services from factory contract.");
           setLoading(false);
         }
       }
@@ -276,6 +278,14 @@ export default function DashboardPage() {
             Grant your wallet the trust that services require. Each service defines its own trust level
             — from basic identity verification to full regulatory compliance. Choose a service and prove your qualifications with zero privacy exposure.
           </p>
+          <div className="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10">
+              Deployed on <span className="font-bold text-on-surface">{currentChainName} ({currentChainId})</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10 font-mono truncate max-w-xs">
+              {rpcUrl}
+            </span>
+          </div>
         </motion.header>
 
         {/* Connect prompt */}
@@ -337,7 +347,7 @@ export default function DashboardPage() {
               No services available
             </h2>
             <p className="text-on-surface-variant">
-              No registries have been deployed on this network yet.
+              No identity verification services have been deployed on this network yet.
             </p>
           </motion.div>
         )}
@@ -347,9 +357,6 @@ export default function DashboardPage() {
           <RegistrySection
             title="Available Services"
             registries={registries}
-            rpcUrl={rpcUrl}
-            chainId={currentChainId}
-            chainName={currentChainName}
             walletConnected={false}
           />
         )}
@@ -380,6 +387,14 @@ export default function DashboardPage() {
           Grant your wallet the trust that services require. Each service defines its own trust level
           — from basic identity verification to full regulatory compliance.
         </p>
+        <div className="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10">
+            Deployed on <span className="font-bold text-on-surface">{currentChainName} ({currentChainId})</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10 font-mono truncate max-w-xs">
+            {rpcUrl}
+          </span>
+        </div>
       </motion.header>
 
       {/* Trust Score Banner */}
@@ -460,7 +475,7 @@ export default function DashboardPage() {
             No services available
           </h2>
           <p className="text-on-surface-variant">
-            No registries have been deployed on this network yet.
+            No identity verification services have been deployed on this network yet.
           </p>
         </motion.div>
       )}
@@ -472,9 +487,6 @@ export default function DashboardPage() {
             <RegistrySection
               title="✓ Trusted — Your Wallet is Verified"
               registries={verifiedRegistries}
-              rpcUrl={rpcUrl}
-              chainId={currentChainId}
-              chainName={currentChainName}
               walletConnected={true}
             />
           )}
@@ -483,9 +495,6 @@ export default function DashboardPage() {
             <RegistrySection
               title="Available Services"
               registries={availableRegistries}
-              rpcUrl={rpcUrl}
-              chainId={currentChainId}
-              chainName={currentChainName}
               walletConnected={true}
               className={verifiedRegistries.length > 0 ? "mt-10" : ""}
             />
@@ -503,17 +512,11 @@ export default function DashboardPage() {
 function RegistrySection({
   title,
   registries,
-  rpcUrl,
-  chainId,
-  chainName,
   walletConnected,
   className,
 }: {
   title: string;
   registries: RegistryCard[];
-  rpcUrl: string;
-  chainId: string;
-  chainName: string;
   walletConnected: boolean;
   className?: string;
 }) {
@@ -542,102 +545,65 @@ function RegistrySection({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 * i }}
-              className="glass-panel rounded-2xl p-6 hover:ring-2 hover:ring-tertiary/30 transition-all group flex flex-col"
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="relative glass-panel rounded-2xl p-5 transition-all group flex flex-col overflow-hidden shadow-lg hover:shadow-2xl"
             >
-              {/* Top row: badge + name */}
-              <div className="flex items-start justify-between mb-1">
-                <div className="flex items-center gap-2 min-w-0">
+              {/* Background glow */}
+              <div className={`absolute -top-12 -right-12 w-40 h-40 ${badge.glow} rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500`} />
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${badge.accent} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+
+              {/* Header: badge + name */}
+              <div className="relative flex items-center gap-2.5 mb-2">
+                {reg.metadata?.category && (
                   <span
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-headline font-bold uppercase tracking-widest shrink-0 ${badge.color}`}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-headline font-bold uppercase tracking-widest shrink-0 ${badge.color} shadow-sm`}
                   >
                     {badge.label}
                   </span>
-                  <h3 className="text-lg font-headline font-bold text-on-surface truncate">
-                    {reg.name}
-                  </h3>
-                </div>
+                )}
+                <h3 className="text-lg font-headline font-bold text-on-surface truncate">
+                  {reg.name}
+                </h3>
+              </div>
+
+              {/* Address */}
+              <div className="relative mb-3">
+                <CopyableAddress address={reg.address} />
               </div>
 
               {/* Description */}
               {reg.metadata?.description && (
-                <p className="text-on-surface-variant text-xs mb-3 line-clamp-2">
-                  {reg.metadata.description.length > 100
-                    ? reg.metadata.description.slice(0, 100) + "..."
-                    : reg.metadata.description}
+                <p className="relative text-on-surface-variant text-xs mb-3 line-clamp-2">
+                  {reg.metadata.description}
                 </p>
               )}
 
-              {/* Address (copyable) */}
-              <div className="mb-4">
-                <CopyableAddress address={reg.address} />
-              </div>
-
-              {/* Stats row */}
-              <div className="flex items-center gap-6 text-sm mb-4">
-                <div>
-                  <span className="text-on-surface-variant text-xs">
-                    Wallets
-                  </span>
-                  <p className="text-on-surface font-headline font-bold">
-                    {reg.maxWallets}
-                  </p>
+              {/* Stats row — card style */}
+              <div className="relative grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-surface-container-low/60 backdrop-blur-sm rounded-xl p-2.5 text-center border border-outline-variant/5">
+                  <p className="text-on-surface-variant text-[9px] uppercase tracking-wider mb-0.5">Wallets</p>
+                  <p className="text-lg font-headline font-bold text-on-surface">{reg.maxWallets}</p>
                 </div>
-                <div>
-                  <span className="text-on-surface-variant text-xs">
-                    Required Trust
-                  </span>
-                  <p className="text-on-surface font-mono text-xs font-bold">
-                    {maskToLabels(reg.minDisclosureMask)}
-                  </p>
+                <div className="bg-surface-container-low/60 backdrop-blur-sm rounded-xl p-2.5 text-center border border-outline-variant/5">
+                  <p className="text-on-surface-variant text-[9px] uppercase tracking-wider mb-0.5">Privacy</p>
+                  <p className="text-xs font-bold text-on-surface font-mono mt-1">{maskToLabels(reg.minDisclosureMask)}</p>
                 </div>
-                <Link href={`/registry/${reg.address}`} className="hover:text-tertiary transition-colors">
-                  <span className="text-on-surface-variant text-xs">Required CAs</span>
-                  <p className="text-on-surface font-headline font-bold underline decoration-dotted underline-offset-2">
-                    {reg.caCount} →
-                  </p>
-                </Link>
-              </div>
-
-              {/* Connection info */}
-              <div className="bg-surface-container-low/50 rounded-lg p-3 mb-4 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant text-[10px] uppercase tracking-wider">
-                    Chain
-                  </span>
-                  <span className="text-on-surface text-xs font-headline font-bold">
-                    {chainName}{" "}
-                    <span className="text-on-surface-variant font-normal">
-                      ({chainId})
-                    </span>
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-on-surface-variant text-[10px] uppercase tracking-wider">
-                    RPC
-                  </span>
-                  <span className="text-on-surface-variant text-xs font-mono truncate ml-4">
-                    {rpcUrl}
-                  </span>
+                <div className="bg-surface-container-low/60 backdrop-blur-sm rounded-xl p-2.5 text-center border border-outline-variant/5">
+                  <p className="text-on-surface-variant text-[9px] uppercase tracking-wider mb-0.5">CAs</p>
+                  <p className="text-lg font-headline font-bold text-on-surface">{reg.caCount}</p>
                 </div>
               </div>
 
-              {/* Status + Action row */}
-              <div className="flex items-center justify-between mt-auto pt-2">
-                {/* My Status */}
+              {/* Status + Actions */}
+              <div className="relative flex items-center justify-between mt-auto pt-3 border-t border-outline-variant/10">
                 {walletConnected ? (
                   reg.verified ? (
                     <span className="inline-flex items-center gap-1.5 text-secondary text-xs font-headline font-bold">
                       <ShieldCheck className="w-4 h-4" />
                       Verified
                       {reg.verifiedUntil && (
-                        <span className="text-on-surface-variant font-normal ml-1">
-                          (Expires:{" "}
-                          {reg.verifiedUntil.toLocaleDateString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          })}
-                          )
+                        <span className="text-on-surface-variant font-normal">
+                          &middot; {reg.verifiedUntil.toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                         </span>
                       )}
                     </span>
@@ -648,19 +614,26 @@ function RegistrySection({
                     </span>
                   )
                 ) : (
-                  <span className="text-on-surface-variant text-xs font-headline">
-                    Connect to check status
+                  <span className="text-on-surface-variant text-xs">
+                    Connect wallet
                   </span>
                 )}
 
-                {/* Action button */}
-                <Link
-                  href={`/registry/${reg.address}`}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary/10 text-primary font-headline font-bold text-xs rounded-full hover:bg-primary hover:text-surface transition-all group/btn shrink-0"
-                >
-                  {reg.verified ? "View Details" : "Register"}
-                  <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
-                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link
+                    href={`/registry/${reg.address}?tab=info`}
+                    className="px-3.5 py-1.5 text-on-surface-variant font-headline font-bold text-xs rounded-full border border-outline-variant/20 hover:bg-surface-container-highest hover:text-tertiary hover:border-tertiary/30 transition-all"
+                  >
+                    Info
+                  </Link>
+                  <Link
+                    href={`/registry/${reg.address}?tab=register`}
+                    className="inline-flex items-center gap-1.5 px-5 py-1.5 bg-primary text-surface font-headline font-bold text-xs rounded-full hover:scale-105 active:scale-95 transition-all shadow-md hover:shadow-lg group/btn"
+                  >
+                    {reg.verified ? "Details" : "Register"}
+                    <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform" />
+                  </Link>
+                </div>
               </div>
             </motion.div>
           );

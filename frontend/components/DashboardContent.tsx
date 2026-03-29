@@ -119,13 +119,13 @@ export default function DashboardContent() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="md:col-span-4 glass-panel rounded-2xl p-5 flex flex-col justify-between group overflow-hidden relative"
+          className="md:col-span-4 glass-panel rounded-2xl p-4 flex flex-col justify-between group overflow-hidden relative"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-secondary/10 transition-colors" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-secondary/5 rounded-full blur-3xl -mr-12 -mt-12 group-hover:bg-secondary/10 transition-colors" />
 
-          <div className="flex justify-between items-start mb-4">
-            <div className={`p-2 rounded-lg ${verified ? "bg-secondary/10" : "bg-outline-variant/10"}`}>
-              <ShieldCheck className={`w-6 h-6 ${verified ? "text-secondary" : "text-on-surface-variant"}`} />
+          <div className="flex justify-between items-start mb-2">
+            <div className={`p-1.5 rounded-lg ${verified ? "bg-secondary/10" : "bg-outline-variant/10"}`}>
+              <ShieldCheck className={`w-5 h-5 ${verified ? "text-secondary" : "text-on-surface-variant"}`} />
             </div>
             {identityLoading ? (
               <span className="text-on-surface-variant font-label text-xs font-bold tracking-widest uppercase bg-outline-variant/10 px-3 py-1 rounded-full">
@@ -143,22 +143,20 @@ export default function DashboardContent() {
           </div>
 
           <div>
-            <h2 className="text-lg font-headline font-bold text-on-surface mb-1">
+            <h2 className="text-base font-headline font-bold text-on-surface mb-0.5">
               {verified ? "Identity Verified" : "Not Verified"}
             </h2>
             {verified && expiryDate ? (
-              <p className="text-on-surface-variant text-sm">
+              <p className="text-on-surface-variant text-xs">
                 Expires:{" "}
                 {expiryDate.toLocaleString(undefined, {
                   year: "numeric",
-                  month: "long",
+                  month: "short",
                   day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
                 })}
               </p>
             ) : (
-              <p className="text-on-surface-variant text-sm">
+              <p className="text-on-surface-variant text-xs">
                 Submit a proof to verify your identity.
               </p>
             )}
@@ -172,45 +170,45 @@ export default function DashboardContent() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2 }}
-          className="md:col-span-8 glass-panel rounded-2xl p-5 flex flex-col justify-between"
+          className="md:col-span-8 glass-panel rounded-2xl p-4 flex flex-col justify-between"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-headline font-bold text-on-surface">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-headline font-bold text-on-surface">
               Account Metadata
             </h2>
-            <Wallet className="w-5 h-5 text-on-surface-variant" />
+            <Wallet className="w-4 h-4 text-on-surface-variant" />
           </div>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {/* Wallet */}
-            <div className="bg-surface-container-low/50 rounded-lg p-3 flex items-center justify-between">
-              <span className="text-on-surface-variant text-sm">Wallet</span>
+            <div className="bg-surface-container-low/50 rounded-lg p-2.5 flex items-center justify-between">
+              <span className="text-on-surface-variant text-xs">Wallet</span>
               <code className="font-mono text-tertiary bg-tertiary/5 px-3 py-1 rounded border border-tertiary/10">
                 {truncateHex(account)}
               </code>
             </div>
             {/* Chain / Registry / Owner */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-surface-container-low/50 rounded-xl p-4">
-                <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-1">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-surface-container-low/50 rounded-xl p-2.5">
+                <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-0.5">
                   Chain
                 </p>
-                <p className="text-xl font-headline font-bold text-primary">
+                <p className="text-base font-headline font-bold text-primary">
                   {chainName || "--"}
                 </p>
               </div>
-              <div className="bg-surface-container-low/50 rounded-xl p-4">
-                <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-1">
+              <div className="bg-surface-container-low/50 rounded-xl p-2.5">
+                <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-0.5">
                   Registry
                 </p>
-                <p className="font-mono text-sm text-tertiary break-all">
+                <p className="font-mono text-xs text-tertiary break-all">
                   {registryAddr ? truncateHex(registryAddr) : "--"}
                 </p>
               </div>
-              <div className="bg-surface-container-low/50 rounded-xl p-4">
-                <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-1">
+              <div className="bg-surface-container-low/50 rounded-xl p-2.5">
+                <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-0.5">
                   Role
                 </p>
-                <p className="text-xl font-headline font-bold">
+                <p className="text-base font-headline font-bold">
                   {isOwner ? (
                     <span className="text-secondary">Owner</span>
                   ) : (
@@ -229,7 +227,7 @@ export default function DashboardContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="md:col-span-12 glass-panel rounded-2xl p-6 space-y-4"
+          className="md:col-span-12 glass-panel rounded-2xl p-5 space-y-3"
         >
           {/* How to generate proof */}
           <details className="bg-surface-container-low/50 rounded-xl border border-outline-variant/10">
@@ -339,7 +337,7 @@ cargo build --release --workspace`}</pre>
                 Proof Hex Data
               </label>
               <textarea
-                className={`w-full h-16 bg-surface-container-low border rounded-xl p-4 font-mono text-sm text-tertiary focus:ring-2 focus:ring-tertiary/20 focus:border-tertiary/40 transition-all outline-none resize-none ${
+                className={`w-full h-12 bg-surface-container-low border rounded-xl p-3 font-mono text-sm text-tertiary focus:ring-2 focus:ring-tertiary/20 focus:border-tertiary/40 transition-all outline-none resize-none ${
                   proof && !proofValid ? "border-red-500/50" : "border-outline-variant/20"
                 }`}
                 placeholder="0x..."
@@ -357,7 +355,7 @@ cargo build --release --workspace`}</pre>
                 Public Values
               </label>
               <textarea
-                className={`w-full h-16 bg-surface-container-low border rounded-xl p-4 font-mono text-sm text-tertiary focus:ring-2 focus:ring-tertiary/20 focus:border-tertiary/40 transition-all outline-none resize-none ${
+                className={`w-full h-12 bg-surface-container-low border rounded-xl p-3 font-mono text-sm text-tertiary focus:ring-2 focus:ring-tertiary/20 focus:border-tertiary/40 transition-all outline-none resize-none ${
                   publicValues && !pubValid ? "border-red-500/50" : "border-outline-variant/20"
                 }`}
                 placeholder="0x..."
@@ -412,11 +410,11 @@ cargo build --release --workspace`}</pre>
           )}
 
           {/* Submit button */}
-          <div className="flex items-center justify-end gap-4 pt-2">
+          <div className="flex items-center justify-end gap-4 pt-1">
             <button
               disabled={!canSubmit}
               onClick={handleSubmit}
-              className="px-10 py-4 bg-primary text-surface font-headline font-bold rounded-full hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
+              className="px-8 py-3 bg-primary text-surface font-headline font-bold rounded-full hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-40 disabled:pointer-events-none"
             >
               {txStatus === "pending" || txStatus === "confirming" ? (
                 <>
