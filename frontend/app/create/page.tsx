@@ -14,7 +14,7 @@ import {
   Coins,
 } from "lucide-react";
 import { useWallet } from "@/lib/wallet";
-import { REGISTRY_FACTORY_ABI, getFactoryAddress, getRpcUrl } from "@/lib/contract";
+import { REGISTRY_FACTORY_ABI, getFactoryAddress } from "@/lib/contract";
 import { useReadProvider } from "@/lib/useReadProvider";
 
 /* ------------------------------------------------------------------ */
@@ -46,19 +46,25 @@ export default function CreateRegistryPage() {
   const provider = useReadProvider();
 
   /* ---------- fee state ---------- */
-  const [feeToken, setFeeToken] = useState<string>("0x0000000000000000000000000000000000000000");
+  const [feeToken, setFeeToken] = useState<string>(ethers.ZeroAddress);
   const [creationFee, setCreationFee] = useState<bigint>(BigInt(0));
   const [feeLoading, setFeeLoading] = useState(true);
+  const [feeError, setFeeError] = useState<string | null>(null);
   const [tokenSymbol, setTokenSymbol] = useState<string>("Token");
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       setFeeLoading(true);
+      setFeeError(null);
       try {
         const cid = chainId || "31337";
         const factoryAddr = getFactoryAddress(cid);
-        if (!factoryAddr) return;
+        if (!factoryAddr) {
+          setFeeError("Factory address not configured for this network.");
+          return;
+        }
         const factory = new ethers.Contract(factoryAddr, REGISTRY_FACTORY_ABI, provider);
         const [token, fee] = await Promise.all([
           factory.feeToken(),
@@ -68,28 +74,31 @@ export default function CreateRegistryPage() {
         setCreationFee(BigInt(fee));
       } catch (e) {
         console.error("Failed to load fee config:", e);
+        setFeeError("Failed to load fee configuration. Please check your network connection.");
       } finally {
         setFeeLoading(false);
       }
     })();
   }, [chainId, provider]);
 
-  const isNativeFee = feeToken === "0x0000000000000000000000000000000000000000" || feeToken === ethers.ZeroAddress;
+  const isNativeFee = feeToken === ethers.ZeroAddress;
 
   /* ---------- token metadata ---------- */
   useEffect(() => {
-    if (isNativeFee || feeToken === "0x0000000000000000000000000000000000000000") return;
+    if (isNativeFee) return;
     (async () => {
       try {
         const token = new ethers.Contract(feeToken, ERC20_ABI, provider);
         const [sym, dec] = await Promise.all([token.symbol(), token.decimals()]);
         setTokenSymbol(sym);
         setTokenDecimals(Number(dec));
+        setMetadataError(null);
       } catch (e) {
         console.error("Failed to load token metadata:", e);
+        setMetadataError("Failed to load token metadata. Please verify the token address.");
       }
     })();
-  }, [feeToken, isNativeFee, provider]);
+  }, [feeToken, provider]);
 
   const feeDisplay = creationFee > BigInt(0)
     ? `${ethers.formatUnits(creationFee, isNativeFee ? 18 : tokenDecimals)} ${isNativeFee ? "ETH" : tokenSymbol}`
@@ -123,6 +132,7 @@ export default function CreateRegistryPage() {
     maxWallets > 0 &&
     maxWallets <= 4294967295 &&
     !feeLoading &&
+    !feeError &&
     txStatus !== "pending" &&
     txStatus !== "confirming";
 
@@ -212,7 +222,7 @@ export default function CreateRegistryPage() {
             Connect Wallet
           </h2>
           <p className="text-on-surface-variant">
-            Connect your wallet to create a verification policy.
+            Connect your wallet to create an Auth Policy.
           </p>
         </motion.div>
       </main>
@@ -349,6 +359,16 @@ export default function CreateRegistryPage() {
             <div className="flex items-center gap-2 p-3 bg-tertiary/5 border border-tertiary/20 rounded-lg mb-2">
               <Loader2 className="w-4 h-4 text-tertiary animate-spin shrink-0" />
               <p className="text-sm text-tertiary font-headline">Loading fee information...</p>
+            </div>
+          ) : feeError ? (
+            <div className="flex items-center gap-2 p-3 bg-red-500/5 border border-red-500/20 rounded-lg mb-2">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <p className="text-sm text-red-400 font-headline">{feeError}</p>
+            </div>
+          ) : metadataError ? (
+            <div className="flex items-center gap-2 p-3 bg-red-500/5 border border-red-500/20 rounded-lg mb-2">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <p className="text-sm text-red-400 font-headline">{metadataError}</p>
             </div>
           ) : creationFee > BigInt(0) ? (
             <div className="flex items-center gap-2 p-3 bg-tertiary/5 border border-tertiary/20 rounded-lg mb-2">
