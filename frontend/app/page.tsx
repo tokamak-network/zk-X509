@@ -228,7 +228,7 @@ export default function LandingPage() {
 
             <p className="text-base md:text-lg text-on-surface-variant max-w-2xl mx-auto leading-relaxed mb-12">
               From DeFi compliance to DAO&apos;s one-person-one-vote. Leverage
-              existing X.509 government certificates to prove on-chain trust —
+              existing X.509 certificates (e.g. government eID, corporate PKI, TLS) to prove on-chain trust —
               with zero privacy exposure.
             </p>
 
@@ -284,7 +284,7 @@ export default function LandingPage() {
               requirement:
                 "One person, one account — prevent multi-wallet voting",
               solution:
-                "Generates unique nullifiers from government certificates to block bots",
+                "Generates unique nullifiers from trusted certificates to block bots",
               color: "secondary",
             },
             {
@@ -450,7 +450,7 @@ export default function LandingPage() {
               href="/create"
               className="px-10 py-4 bg-primary text-surface font-headline font-bold rounded-full hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 text-lg"
             >
-              Create Registry <ArrowRight className="w-5 h-5" />
+              Create Auth Policy <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
               href="/faq"

@@ -211,11 +211,11 @@ export default function AdminPage() {
               <LayoutGrid className="w-6 h-6 text-tertiary" />
             </div>
             <h1 className="text-3xl font-headline font-bold tracking-tight text-primary">
-              My Services
+              Service Auth Policies
             </h1>
           </div>
           <p className="text-on-surface-variant text-sm">
-            Registries you own on the connected wallet.
+            Manage your auth policies. Configure accepted certificates and authentication rules.
           </p>
         </div>
         <Link
@@ -223,7 +223,7 @@ export default function AdminPage() {
           className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-surface font-headline font-bold text-sm rounded-full hover:scale-105 active:scale-95 transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Create New Registry
+          Create New Auth Policy
         </Link>
       </motion.header>
 
@@ -236,7 +236,7 @@ export default function AdminPage() {
         >
           <Loader2 className="w-8 h-8 text-tertiary animate-spin" />
           <span className="ml-3 text-on-surface-variant font-headline">
-            Loading registries...
+            Loading services...
           </span>
         </motion.div>
       )}
@@ -261,17 +261,17 @@ export default function AdminPage() {
         >
           <Shield className="w-12 h-12 text-on-surface-variant mx-auto mb-4" />
           <h2 className="text-xl font-headline font-bold text-on-surface mb-2">
-            No services yet
+            No auth policies yet
           </h2>
           <p className="text-on-surface-variant mb-6">
-            You haven&apos;t created any registries with this wallet.
+            You haven&apos;t created any auth policies yet. Create one to define which certificates your service accepts.
           </p>
           <Link
             href="/create"
             className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-surface font-headline font-bold rounded-full hover:scale-105 active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            Create Registry
+            Create Auth Policy
           </Link>
         </motion.div>
       )}

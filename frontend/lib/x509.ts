@@ -5,6 +5,7 @@
  * human-readable metadata for auto-generating CA guides.
  */
 
+import "reflect-metadata";
 import * as x509 from "@peculiar/x509";
 import type { CaGuide } from "./platform";
 

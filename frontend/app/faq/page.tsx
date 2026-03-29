@@ -67,7 +67,7 @@ const faqItems = [
   {
     question: "What is zk-X509?",
     answer:
-      "zk-X509 is a system that lets you prove your identity on the blockchain using existing digital certificates (like government-issued NPKI or corporate certificates) without revealing any personal information. Using Zero-Knowledge Proofs, the blockchain only learns that you hold a valid certificate — your name, ID number, and other details remain completely private.",
+      "zk-X509 is a system that lets you prove your identity on the blockchain using existing X.509 certificates (e.g. government eID, corporate PKI, TLS/SSL) without revealing any personal information. Using Zero-Knowledge Proofs, the blockchain only learns that you hold a valid certificate — your name, ID number, and other details remain completely private.",
   },
   {
     question: "How does the identity verification process work?",
@@ -82,7 +82,7 @@ const faqItems = [
   {
     question: "What types of certificates are supported?",
     answer:
-      "zk-X509 supports standard X.509 certificates with RSA (2048/4096-bit) and ECDSA (P-256, P-384) signatures. This includes government-issued certificates (Korean NPKI, European eID), corporate PKI certificates, and standard TLS/SSL certificates. The system verifies the full certificate chain from your certificate up to the trusted root CA.",
+      "zk-X509 supports standard X.509 certificates with RSA (2048/4096-bit) and ECDSA (P-256, P-384) signatures. This includes government-issued certificates (e.g. Korean NPKI, European eID), corporate PKI, TLS/SSL, IoT device certificates, and any CA-signed X.509 certificate. The system verifies the full certificate chain from your certificate up to the trusted root CA.",
   },
   {
     question: "Can I register the same certificate on multiple wallets?",
@@ -186,10 +186,13 @@ export default function FAQPage() {
                 for technical assistance with certificate verification or proof
                 generation.
               </p>
-              <button className="w-full py-4 bg-white text-black font-headline font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 active:scale-95 transition-all">
+              <a
+                href="mailto:zena@tokamak.network"
+                className="w-full py-4 bg-white text-black font-headline font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 active:scale-95 transition-all"
+              >
                 <Mail className="w-5 h-5" />
                 Contact Support
-              </button>
+              </a>
             </div>
 
             {/* Quick Stats Bento */}
