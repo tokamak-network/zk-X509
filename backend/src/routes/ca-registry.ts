@@ -83,16 +83,14 @@ router.post("/pr", async (req, res) => {
       }
     }
 
-    // Determine if this is a first-time registration
-    const isNew = Object.keys(existingCas).length === 0;
-
     // Build service.json (matches service.schema.json)
+    // Note: created_at is preserved from existing service.json by createCaRegistryPr
     const today = new Date().toISOString().split("T")[0];
     const serviceObj: Record<string, unknown> = {
       name: serviceName || "Unnamed Service",
       description: serviceName || `Service for ${registryAddress.toLowerCase()}`,
       admin: adminAddress.toLowerCase(),
-      ...(isNew ? { created_at: today } : {}),
+      created_at: today,
       updated_at: today,
       cas: allCas,
     };
@@ -126,28 +124,33 @@ router.post("/pr", async (req, res) => {
       signatureJson,
     };
 
-    // PR title: [Operation] chainId 0xAddress - serviceName
-    const opTag = isNew ? "Register"
+    // PR title/body builders — isNew is determined inside createCaRegistryPr
+    const buildOpTag = (isNew: boolean) =>
+      isNew ? "Register"
       : operation === "add-ca" ? "AddCA"
       : operation === "remove-ca" ? "RemoveCA"
       : "Update";
-    const prTitle = `[${opTag}] ${chainId} ${registryAddress.toLowerCase()} - ${serviceName || "Unnamed Service"}`;
 
-    const caNames = certs.map((c) => c.guide?.name || c.hashHex.slice(0, 16)).join(", ");
-    const prBody = [
-      `## ${opTag === "Register" ? "Register Service" : opTag === "AddCA" ? "Add CA" : opTag === "RemoveCA" ? "Remove CA" : "Update"} CA`,
-      "",
-      `- **Service**: \`${registryAddress.toLowerCase()}\``,
-      `- **Chain ID**: ${chainId}`,
-      `- **Admin**: \`${adminAddress.toLowerCase()}\``,
-      "",
-      "### CA Certificates",
-      ...certs.map((c) => `- \`${c.hashHex.toLowerCase().slice(0, 20)}...\` — ${c.guide?.name || "Unknown"}`),
-      "",
-      `Signed by admin at ${signedAt}.`,
-    ].join("\n");
+    const buildTitle = (isNew: boolean) =>
+      `[${buildOpTag(isNew)}] ${chainId} ${registryAddress.toLowerCase()} - ${serviceName || "Unnamed Service"}`;
 
-    const result = await createCaRegistryPr(files, prTitle, prBody);
+    const buildBody = (isNew: boolean) => {
+      const opTag = buildOpTag(isNew);
+      return [
+        `## ${opTag === "Register" ? "Register Service" : opTag === "AddCA" ? "Add CA" : opTag === "RemoveCA" ? "Remove CA" : "Update"} CA`,
+        "",
+        `- **Service**: \`${registryAddress.toLowerCase()}\``,
+        `- **Chain ID**: ${chainId}`,
+        `- **Admin**: \`${adminAddress.toLowerCase()}\``,
+        "",
+        "### CA Certificates",
+        ...certs.map((c) => `- \`${c.hashHex.toLowerCase().slice(0, 20)}...\` — ${c.guide?.name || "Unknown"}`),
+        "",
+        `Signed by admin at ${signedAt}.`,
+      ].join("\n");
+    };
+
+    const result = await createCaRegistryPr(files, buildTitle, buildBody);
     res.json(result);
   } catch (e: unknown) {
     console.error("Failed to create CA registry PR:", e);
