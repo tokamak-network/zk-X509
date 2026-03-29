@@ -29,7 +29,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   InvalidCaMerkleRoot: "The CA Merkle root in the proof does not match the on-chain root.",
   NullifierRevoked: "This certificate nullifier has been revoked.",
   CertAlreadyExpired: "The X.509 certificate has already expired.",
-  ContractPaused: "The registry contract is currently paused.",
+  ContractPaused: "The service contract is currently paused.",
 };
 
 /** Parse a contract revert into a human-readable message. */

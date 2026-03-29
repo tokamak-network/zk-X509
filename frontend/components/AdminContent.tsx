@@ -1127,7 +1127,7 @@ export default function AdminContent() {
               <div className="bg-surface p-5 rounded-2xl border border-outline-variant/10 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center justify-between bg-surface-container-low/50 rounded-xl p-3">
                   <div>
-                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Registry Contract</p>
+                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mb-1">Service Contract</p>
                     <p className="font-mono text-sm text-tertiary">{registryAddr || "—"}</p>
                   </div>
                   {registryAddr && (
@@ -1209,7 +1209,7 @@ export default function AdminContent() {
                   <Globe className="w-4 h-4 text-on-surface-variant shrink-0" />
                   <input
                     type="password"
-                    placeholder="GitHub Token (optional — enables auto PR to CA registry)"
+                    placeholder="GitHub Token (optional — enables auto PR to CA repository)"
                     value={githubToken}
                     onChange={(e) => setGithubToken(e.target.value)}
                     autoComplete="off"
@@ -1748,7 +1748,7 @@ export default function AdminContent() {
                 <div className="flex items-center gap-3 mb-6">
                   <Globe className="text-primary w-5 h-5" />
                   <h2 className="text-xl font-headline font-bold text-primary">
-                    Registry Metadata
+                    Service Metadata
                   </h2>
                 </div>
 
@@ -1764,7 +1764,7 @@ export default function AdminContent() {
                       </label>
                       <textarea
                         className="w-full bg-surface-highest border-none rounded-xl px-4 py-3 text-sm outline-none text-primary placeholder:text-on-surface-variant/30 resize-y min-h-[80px]"
-                        placeholder="Describe this registry..."
+                        placeholder="Describe this service..."
                         value={svcMetadata.description || ""}
                         onChange={(e) => setSvcMetadata((p) => ({ ...p, description: e.target.value }))}
                         disabled={disabled}

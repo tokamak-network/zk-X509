@@ -156,7 +156,7 @@ export default function AdminPage() {
       } catch (e) {
         console.error("Failed to load registries:", e);
         if (!cancelled) {
-          setError("Failed to load registries from factory contract.");
+          setError("Failed to load services from factory contract.");
           setLoading(false);
         }
       }
@@ -276,7 +276,7 @@ export default function AdminPage() {
         </motion.div>
       )}
 
-      {/* Registry cards */}
+      {/* Service cards */}
       {!loading && !error && registries.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           {registries.map((reg, i) => {

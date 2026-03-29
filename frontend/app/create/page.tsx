@@ -222,7 +222,7 @@ export default function CreateRegistryPage() {
             Connect Wallet
           </h2>
           <p className="text-on-surface-variant">
-            Connect your wallet to create an Auth Policy.
+            Connect your wallet to create an auth policy.
           </p>
         </motion.div>
       </main>

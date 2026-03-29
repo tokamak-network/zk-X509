@@ -206,7 +206,7 @@ export default function IdentityPage() {
       } catch (e) {
         console.error("Failed to load registries:", e);
         if (!cancelled) {
-          setError("Failed to load registries from factory contract.");
+          setError("Failed to load services from factory contract.");
           setLoading(false);
         }
       }
@@ -353,7 +353,7 @@ export default function IdentityPage() {
         </motion.div>
       )}
 
-      {/* Verified registry cards */}
+      {/* Verified service cards */}
       {!loading && !error && verified.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2">
           {verified.map((reg, i) => {

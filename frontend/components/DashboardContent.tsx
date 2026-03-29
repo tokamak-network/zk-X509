@@ -186,7 +186,7 @@ export default function DashboardContent() {
                 {truncateHex(account)}
               </code>
             </div>
-            {/* Chain / Registry / Owner */}
+            {/* Chain / Address / Owner */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="bg-surface-container-low/50 rounded-xl p-2.5">
                 <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-0.5">
@@ -198,7 +198,7 @@ export default function DashboardContent() {
               </div>
               <div className="bg-surface-container-low/50 rounded-xl p-2.5">
                 <p className="text-on-surface-variant text-[10px] uppercase tracking-tighter mb-0.5">
-                  Registry
+                  Address
                 </p>
                 <p className="font-mono text-xs text-tertiary break-all">
                   {registryAddr ? truncateHex(registryAddr) : "--"}

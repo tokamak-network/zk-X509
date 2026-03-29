@@ -355,8 +355,8 @@ export default function LandingPage() {
             },
             {
               icon: Fingerprint,
-              title: "Cross-Registry Unlinkability",
-              desc: "Different services = different nullifiers = untraceable. Your identity cannot be correlated across registries.",
+              title: "Cross-Service Unlinkability",
+              desc: "Different services = different nullifiers = untraceable. Your identity cannot be correlated across services.",
             },
             {
               icon: Server,
@@ -418,7 +418,7 @@ export default function LandingPage() {
               },
               {
                 value: "~$0.08",
-                label: "Per registry on L2",
+                label: "Per verification on L2",
                 color: "tertiary",
               },
             ].map((stat, i) => (

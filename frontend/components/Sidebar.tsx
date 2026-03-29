@@ -37,7 +37,7 @@ const dashboardItems: NavItem[] = [
 const faqItems: NavItem[] = [
   { icon: Cpu, label: "System Overview", href: "/faq" },
   { icon: ShieldCheck, label: "Certificate & CA" },
-  { icon: Database, label: "Registry" },
+  { icon: Database, label: "Service" },
   { icon: Brain, label: "Proof Generation" },
   { icon: Shield, label: "Security" },
   { icon: UserCog, label: "Admin" },

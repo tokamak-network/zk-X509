@@ -174,7 +174,7 @@ export default function CaRegistrationModal({
       const prBody = [
         `## ${operation === "add-ca" ? "Add" : operation === "remove-ca" ? "Remove" : "Update"} CA`,
         "",
-        `- **Registry**: \`${registryAddress}\``,
+        `- **Service**: \`${registryAddress}\``,
         `- **Chain ID**: ${chainId}`,
         `- **Admin**: \`${adminAddress}\``,
         "",
