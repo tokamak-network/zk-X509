@@ -148,7 +148,8 @@ async function getExistingServiceJson(
   const res = await fetch(`${API_BASE}/repos/${UPSTREAM_OWNER}/${UPSTREAM_REPO}/contents/${path}?ref=main`, {
     headers: authHeaders(token),
   });
-  if (!res.ok) return null;
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to check upstream service.json: ${res.status} ${await res.text()}`);
   const data = await res.json();
   const content = Buffer.from(data.content, "base64").toString("utf-8");
   return JSON.parse(content);
@@ -173,13 +174,11 @@ export async function createCaRegistryPr(
   ]);
   const isNew = existingService === null;
 
-  // Preserve created_at from existing service.json
-  if (!isNew && files.serviceJson) {
+  // Preserve created_at from existing service.json on updates
+  if (!isNew && existingService?.created_at) {
     const serviceObj = JSON.parse(files.serviceJson);
-    if (!serviceObj.created_at && existingService?.created_at) {
-      serviceObj.created_at = existingService.created_at;
-      files.serviceJson = JSON.stringify(serviceObj, null, 2);
-    }
+    serviceObj.created_at = existingService.created_at;
+    files.serviceJson = JSON.stringify(serviceObj, null, 2);
   }
 
   const mainSha = await getRef(token, UPSTREAM_OWNER, UPSTREAM_REPO, "heads/main");
