@@ -239,7 +239,7 @@ export default function DashboardPage() {
                 verifiedUntil,
               });
             } catch (e) {
-              console.error(`Failed to load registry ${addr}:`, e);
+              console.error(`Failed to load service ${addr}:`, e);
             }
           }),
         );

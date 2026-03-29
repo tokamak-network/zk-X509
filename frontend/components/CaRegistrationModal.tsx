@@ -90,7 +90,7 @@ export default function CaRegistrationModal({
       const message = [
         "zk-x509-ca-registry",
         `Chain ID: ${chainId}`,
-        `Registry: ${registryAddress.toLowerCase()}`,
+        `Service Address: ${registryAddress.toLowerCase()}`,
         `Admin: ${adminAddress.toLowerCase()}`,
         `Operation: ${operation}`,
         `Timestamp: ${timestamp}`,

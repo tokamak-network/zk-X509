@@ -144,7 +144,7 @@ export default function AdminPage() {
                 metadata,
               });
             } catch (e) {
-              console.error(`Failed to load registry ${addr}:`, e);
+              console.error(`Failed to load service ${addr}:`, e);
             }
           }),
         );
@@ -154,7 +154,7 @@ export default function AdminPage() {
           setLoading(false);
         }
       } catch (e) {
-        console.error("Failed to load registries:", e);
+        console.error("Failed to load services:", e);
         if (!cancelled) {
           setError("Failed to load services from factory contract.");
           setLoading(false);

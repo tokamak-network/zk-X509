@@ -243,7 +243,7 @@ export default function LandingPage() {
                 href="/create"
                 className="px-10 py-4 border border-outline-variant/30 text-on-surface font-headline rounded-full hover:bg-surface-container-highest transition-all text-lg"
               >
-                Create Service
+                Create Auth Policy
               </Link>
             </div>
           </motion.div>

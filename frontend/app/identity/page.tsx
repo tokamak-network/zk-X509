@@ -204,7 +204,7 @@ export default function IdentityPage() {
           setLoading(false);
         }
       } catch (e) {
-        console.error("Failed to load registries:", e);
+        console.error("Failed to load services:", e);
         if (!cancelled) {
           setError("Failed to load services from factory contract.");
           setLoading(false);
