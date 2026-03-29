@@ -30,6 +30,13 @@ const DISCLOSURE_FIELDS = [
   { bit: 3, label: "Common Name", description: "CN" },
 ] as const;
 
+const ERC20_ABI = [
+  { inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], name: "allowance", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+  { inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], name: "approve", outputs: [{ name: "", type: "bool" }], stateMutability: "nonpayable", type: "function" },
+  { inputs: [], name: "symbol", outputs: [{ name: "", type: "string" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "decimals", outputs: [{ name: "", type: "uint8" }], stateMutability: "view", type: "function" },
+] as const;
+
 /* ================================================================== */
 /*  Create Registry Page                                               */
 /* ================================================================== */
@@ -40,8 +47,10 @@ export default function CreateRegistryPage() {
 
   /* ---------- fee state ---------- */
   const [feeToken, setFeeToken] = useState<string>("0x0000000000000000000000000000000000000000");
-  const [creationFee, setCreationFee] = useState<bigint>(0n);
+  const [creationFee, setCreationFee] = useState<bigint>(BigInt(0));
   const [feeLoading, setFeeLoading] = useState(true);
+  const [tokenSymbol, setTokenSymbol] = useState<string>("Token");
+  const [tokenDecimals, setTokenDecimals] = useState<number>(18);
 
   useEffect(() => {
     (async () => {
@@ -66,8 +75,24 @@ export default function CreateRegistryPage() {
   }, [chainId, provider]);
 
   const isNativeFee = feeToken === "0x0000000000000000000000000000000000000000" || feeToken === ethers.ZeroAddress;
-  const feeDisplay = creationFee > 0n
-    ? `${ethers.formatEther(creationFee)} ${isNativeFee ? "ETH" : "Token"}`
+
+  /* ---------- token metadata ---------- */
+  useEffect(() => {
+    if (isNativeFee || feeToken === "0x0000000000000000000000000000000000000000") return;
+    (async () => {
+      try {
+        const token = new ethers.Contract(feeToken, ERC20_ABI, provider);
+        const [sym, dec] = await Promise.all([token.symbol(), token.decimals()]);
+        setTokenSymbol(sym);
+        setTokenDecimals(Number(dec));
+      } catch (e) {
+        console.error("Failed to load token metadata:", e);
+      }
+    })();
+  }, [feeToken, isNativeFee, provider]);
+
+  const feeDisplay = creationFee > BigInt(0)
+    ? `${ethers.formatUnits(creationFee, isNativeFee ? 18 : tokenDecimals)} ${isNativeFee ? "ETH" : tokenSymbol}`
     : "Free";
 
   /* ---------- form state ---------- */
@@ -97,6 +122,7 @@ export default function CreateRegistryPage() {
     name.trim().length > 0 &&
     maxWallets > 0 &&
     maxWallets <= 4294967295 &&
+    !feeLoading &&
     txStatus !== "pending" &&
     txStatus !== "confirming";
 
@@ -120,10 +146,21 @@ export default function CreateRegistryPage() {
         return;
       }
 
+      /* ---- ERC-20 approve if needed ---- */
+      if (!isNativeFee && creationFee > BigInt(0)) {
+        const token = new ethers.Contract(feeToken, ERC20_ABI, signer);
+        const signerAddr = await signer.getAddress();
+        const currentAllowance: bigint = BigInt(await token.allowance(signerAddr, factoryAddr));
+        if (currentAllowance < creationFee) {
+          const approveTx = await token.approve(factoryAddr, creationFee);
+          await approveTx.wait();
+        }
+      }
+
       const factory = new ethers.Contract(factoryAddr, REGISTRY_FACTORY_ABI, signer);
       const maxProofAge = 3600; // 1 hour — fixed at deployment
       const txOptions: { value?: bigint } = {};
-      if (creationFee > 0n && isNativeFee) {
+      if (creationFee > BigInt(0) && isNativeFee) {
         txOptions.value = creationFee;
       }
       const tx = await factory.createRegistry(name.trim(), maxWallets, minDisclosureMask, maxProofAge, txOptions);
@@ -308,14 +345,19 @@ export default function CreateRegistryPage() {
         {/* Summary */}
         <div className="bg-surface-container-low/50 rounded-xl p-4 space-y-2 border border-outline-variant/10">
           <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-label">Deploy Summary</p>
-          {creationFee > 0n && (
+          {feeLoading ? (
+            <div className="flex items-center gap-2 p-3 bg-tertiary/5 border border-tertiary/20 rounded-lg mb-2">
+              <Loader2 className="w-4 h-4 text-tertiary animate-spin shrink-0" />
+              <p className="text-sm text-tertiary font-headline">Loading fee information...</p>
+            </div>
+          ) : creationFee > BigInt(0) ? (
             <div className="flex items-center gap-2 p-3 bg-tertiary/5 border border-tertiary/20 rounded-lg mb-2">
               <Coins className="w-4 h-4 text-tertiary shrink-0" />
               <p className="text-sm text-tertiary font-headline font-bold">
                 Creation Fee: {feeDisplay}
               </p>
             </div>
-          )}
+          ) : null}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-on-surface-variant text-xs">Name</p>
@@ -360,7 +402,7 @@ export default function CreateRegistryPage() {
               <p className="font-headline font-bold text-sm">
                 {txStatus === "pending" && "Waiting for wallet confirmation..."}
                 {txStatus === "confirming" && "Transaction submitted. Waiting for confirmation..."}
-                {txStatus === "success" && "Service deployed successfully!"}
+                {txStatus === "success" && "Auth policy deployed successfully!"}
                 {txStatus === "error" && "Transaction failed"}
               </p>
               {txHash && (
@@ -380,7 +422,7 @@ export default function CreateRegistryPage() {
                     href={`/registry/${newRegistryAddress}`}
                     className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-secondary/20 text-secondary font-headline text-sm rounded-full hover:bg-secondary/30 transition-all"
                   >
-                    View Service <ArrowRight className="w-4 h-4" />
+                    View Auth Policy <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               )}

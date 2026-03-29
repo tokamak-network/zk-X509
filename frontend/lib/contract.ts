@@ -371,11 +371,25 @@ export const REGISTRY_FACTORY_ABI = [
     ],
     name: "createRegistry",
     outputs: [{ name: "", type: "address" }],
-    stateMutability: "nonpayable",
+    stateMutability: "payable",
     type: "function",
   },
 
   // ============ View Functions ============
+  {
+    inputs: [],
+    name: "feeToken",
+    outputs: [{ name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "registryCreationFee",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
   {
     inputs: [],
     name: "getRegistries",
