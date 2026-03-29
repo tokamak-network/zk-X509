@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense, useCallback } from "react";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { ethers } from "ethers";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -83,16 +83,24 @@ export default function RegistryDetailPage() {
 function RegistryDetailContent() {
   const params = useParams<{ address: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const address = params.address;
   const { isOwner } = useWallet();
 
-  const raw = searchParams.get("tab");
   const validTabs: PageTab[] = ["register", "manage", "info"];
-  const initialTab: PageTab = raw && validTabs.includes(raw as PageTab) ? (raw as PageTab) : "register";
+  const raw = searchParams.get("tab");
+  const activeTab: PageTab = raw && validTabs.includes(raw as PageTab) ? (raw as PageTab) : "register";
+
+  const setActiveTab = useCallback(
+    (tab: PageTab) => {
+      router.replace(`/registry/${address}?tab=${tab}`, { scroll: false });
+    },
+    [router, address],
+  );
+
   const [info, setInfo] = useState<RegistryInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<PageTab>(initialTab);
 
   // Platform backend data
   const [metadata, setMetadata] = useState<RegistryMetadata | null>(null);

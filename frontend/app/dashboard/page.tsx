@@ -79,6 +79,19 @@ const CATEGORY_BADGES: Record<string, { label: string; color: string; glow: stri
   },
 };
 
+function DeployedOnInfo({ chainName, chainId, rpcUrl }: { chainName: string; chainId: string; rpcUrl: string }) {
+  return (
+    <div className="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10">
+        Deployed on <span className="font-bold text-on-surface">{chainName} ({chainId})</span>
+      </span>
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10 font-mono truncate max-w-xs">
+        {rpcUrl}
+      </span>
+    </div>
+  );
+}
+
 function getChainName(id: string): string {
   switch (id) {
     case "1":
@@ -237,7 +250,7 @@ export default function DashboardPage() {
           setLoading(false);
         }
       } catch (e) {
-        console.error("Failed to load registries:", e);
+        console.error("Failed to load services from factory contract:", e);
         if (!cancelled) {
           setError("Failed to load services from factory contract.");
           setLoading(false);
@@ -278,14 +291,7 @@ export default function DashboardPage() {
             Grant your wallet the trust that services require. Each service defines its own trust level
             — from basic identity verification to full regulatory compliance. Choose a service and prove your qualifications with zero privacy exposure.
           </p>
-          <div className="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10">
-              Deployed on <span className="font-bold text-on-surface">{currentChainName} ({currentChainId})</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10 font-mono truncate max-w-xs">
-              {rpcUrl}
-            </span>
-          </div>
+          <DeployedOnInfo chainName={currentChainName} chainId={currentChainId} rpcUrl={rpcUrl} />
         </motion.header>
 
         {/* Connect prompt */}
@@ -387,14 +393,7 @@ export default function DashboardPage() {
           Grant your wallet the trust that services require. Each service defines its own trust level
           — from basic identity verification to full regulatory compliance.
         </p>
-        <div className="flex items-center gap-3 mt-3 text-xs text-on-surface-variant">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10">
-            Deployed on <span className="font-bold text-on-surface">{currentChainName} ({currentChainId})</span>
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-surface-container-low/50 rounded-full border border-outline-variant/10 font-mono truncate max-w-xs">
-            {rpcUrl}
-          </span>
-        </div>
+        <DeployedOnInfo chainName={currentChainName} chainId={currentChainId} rpcUrl={rpcUrl} />
       </motion.header>
 
       {/* Trust Score Banner */}
