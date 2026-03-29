@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ethers } from "ethers";
 import Link from "next/link";
@@ -11,9 +11,11 @@ import {
   AlertCircle,
   ArrowRight,
   Plus,
+  Coins,
 } from "lucide-react";
 import { useWallet } from "@/lib/wallet";
 import { REGISTRY_FACTORY_ABI, getFactoryAddress, getRpcUrl } from "@/lib/contract";
+import { useReadProvider } from "@/lib/useReadProvider";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -34,6 +36,39 @@ const DISCLOSURE_FIELDS = [
 
 export default function CreateRegistryPage() {
   const { account, chainId } = useWallet();
+  const provider = useReadProvider();
+
+  /* ---------- fee state ---------- */
+  const [feeToken, setFeeToken] = useState<string>("0x0000000000000000000000000000000000000000");
+  const [creationFee, setCreationFee] = useState<bigint>(0n);
+  const [feeLoading, setFeeLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setFeeLoading(true);
+      try {
+        const cid = chainId || "31337";
+        const factoryAddr = getFactoryAddress(cid);
+        if (!factoryAddr) return;
+        const factory = new ethers.Contract(factoryAddr, REGISTRY_FACTORY_ABI, provider);
+        const [token, fee] = await Promise.all([
+          factory.feeToken(),
+          factory.registryCreationFee(),
+        ]);
+        setFeeToken(token);
+        setCreationFee(BigInt(fee));
+      } catch (e) {
+        console.error("Failed to load fee config:", e);
+      } finally {
+        setFeeLoading(false);
+      }
+    })();
+  }, [chainId, provider]);
+
+  const isNativeFee = feeToken === "0x0000000000000000000000000000000000000000" || feeToken === ethers.ZeroAddress;
+  const feeDisplay = creationFee > 0n
+    ? `${ethers.formatEther(creationFee)} ${isNativeFee ? "ETH" : "Token"}`
+    : "Free";
 
   /* ---------- form state ---------- */
   const [name, setName] = useState("");
@@ -87,7 +122,11 @@ export default function CreateRegistryPage() {
 
       const factory = new ethers.Contract(factoryAddr, REGISTRY_FACTORY_ABI, signer);
       const maxProofAge = 3600; // 1 hour — fixed at deployment
-      const tx = await factory.createRegistry(name.trim(), maxWallets, minDisclosureMask, maxProofAge);
+      const txOptions: { value?: bigint } = {};
+      if (creationFee > 0n && isNativeFee) {
+        txOptions.value = creationFee;
+      }
+      const tx = await factory.createRegistry(name.trim(), maxWallets, minDisclosureMask, maxProofAge, txOptions);
 
       setTxStatus("confirming");
       setTxHash(tx.hash);
@@ -136,7 +175,7 @@ export default function CreateRegistryPage() {
             Connect Wallet
           </h2>
           <p className="text-on-surface-variant">
-            Connect your wallet to create a registry.
+            Connect your wallet to create a verification policy.
           </p>
         </motion.div>
       </main>
@@ -158,11 +197,11 @@ export default function CreateRegistryPage() {
             <Plus className="w-6 h-6 text-tertiary" />
           </div>
           <h1 className="text-3xl font-headline font-bold tracking-tight text-primary">
-            Create Registry
+            Create Auth Policy
           </h1>
         </div>
         <p className="text-on-surface-variant text-sm">
-          Deploy a new IdentityRegistry with custom configuration.
+          Define which certificates your service accepts and how users authenticate on-chain.
         </p>
       </motion.header>
 
@@ -269,6 +308,14 @@ export default function CreateRegistryPage() {
         {/* Summary */}
         <div className="bg-surface-container-low/50 rounded-xl p-4 space-y-2 border border-outline-variant/10">
           <p className="text-[10px] text-on-surface-variant uppercase tracking-widest font-label">Deploy Summary</p>
+          {creationFee > 0n && (
+            <div className="flex items-center gap-2 p-3 bg-tertiary/5 border border-tertiary/20 rounded-lg mb-2">
+              <Coins className="w-4 h-4 text-tertiary shrink-0" />
+              <p className="text-sm text-tertiary font-headline font-bold">
+                Creation Fee: {feeDisplay}
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-4">
             <div>
               <p className="text-on-surface-variant text-xs">Name</p>
@@ -313,7 +360,7 @@ export default function CreateRegistryPage() {
               <p className="font-headline font-bold text-sm">
                 {txStatus === "pending" && "Waiting for wallet confirmation..."}
                 {txStatus === "confirming" && "Transaction submitted. Waiting for confirmation..."}
-                {txStatus === "success" && "Registry deployed successfully!"}
+                {txStatus === "success" && "Service deployed successfully!"}
                 {txStatus === "error" && "Transaction failed"}
               </p>
               {txHash && (
@@ -327,13 +374,13 @@ export default function CreateRegistryPage() {
               {txStatus === "success" && newRegistryAddress && (
                 <div className="mt-3">
                   <p className="font-mono text-xs break-all">
-                    Registry: {newRegistryAddress}
+                    Address: {newRegistryAddress}
                   </p>
                   <Link
                     href={`/registry/${newRegistryAddress}`}
                     className="inline-flex items-center gap-2 mt-2 px-4 py-2 bg-secondary/20 text-secondary font-headline text-sm rounded-full hover:bg-secondary/30 transition-all"
                   >
-                    View Registry <ArrowRight className="w-4 h-4" />
+                    View Service <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               )}
@@ -360,7 +407,7 @@ export default function CreateRegistryPage() {
               </>
             ) : (
               <>
-                Deploy Registry <ArrowRight className="w-4 h-4" />
+                Deploy Auth Policy <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
