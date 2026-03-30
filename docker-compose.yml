@@ -19,7 +19,7 @@ services:
       - ./contracts:/contracts
       - ./scripts:/scripts:ro
       - deployer-output:/shared
-      - ./.docker-addresses.json:/host-root/.docker-addresses.json
+      - ./:/host-root
     working_dir: /contracts
     entrypoint: ["sh", "/scripts/deploy-local.sh"]
 
