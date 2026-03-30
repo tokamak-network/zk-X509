@@ -120,11 +120,11 @@ export default function DashboardPage() {
           getListedRegistries(),
         ]);
 
-        // null = backend unreachable → show all on-chain registries
-        // [] = backend ok but nothing listed → show all (no one opted out yet)
+        // null  = backend unreachable → show all on-chain registries
+        // []    = backend ok, nothing listed → show none
         // [...] = filter to only listed
         let visibleAddresses = allAddresses;
-        if (listedAddresses && listedAddresses.length > 0) {
+        if (listedAddresses !== null) {
           const listedSet = new Set(listedAddresses.map((l: string) => l.toLowerCase()));
           visibleAddresses = allAddresses.filter((a: string) => listedSet.has(a.toLowerCase()));
         }

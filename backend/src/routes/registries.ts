@@ -105,7 +105,7 @@ router.put("/:address", (req, res) => {
   if (Array.isArray(tags)) {
     entry.tags = tags.filter((tag: unknown): tag is string => typeof tag === "string");
   }
-  if (listed !== undefined) entry.listed = Boolean(listed);
+  if (listed !== undefined) entry.listed = typeof listed === "string" ? listed.toLowerCase() === "true" : Boolean(listed);
 
   writeDB(db);
   res.json(db[addr]);
