@@ -3,8 +3,8 @@ set -e
 
 # Read deployed contract addresses from shared volume (written by deployer)
 if [ -f /shared/addresses.json ]; then
-  FACTORY=$(cat /shared/addresses.json | grep '"factory"' | sed 's/.*: *"\(.*\)".*/\1/')
-  VERIFIER=$(cat /shared/addresses.json | grep '"verifier"' | sed 's/.*: *"\(.*\)".*/\1/')
+  FACTORY=$(node -p 'require("/shared/addresses.json").factory')
+  VERIFIER=$(node -p 'require("/shared/addresses.json").verifier')
 
   export NEXT_PUBLIC_FACTORY_ADDRESS="$FACTORY"
   export NEXT_PUBLIC_SP1_VERIFIER_ADDRESS="$VERIFIER"

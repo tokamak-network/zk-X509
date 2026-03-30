@@ -68,7 +68,7 @@ Makefile로 자주 쓰는 명령어를 제공합니다.
 | 명령어 | 설명 |
 |--------|------|
 | `make up` | 빌드 + 배포 + 실행 (배포 주소 자동 출력) |
-| `make down` | 중지 (볼륨 유지 — 재시작 시 재배포 불필요) |
+| `make down` | 중지 (체인 상태는 초기화됨 — 다음 up 시 재배포) |
 | `make clean` | 중지 + 볼륨/주소 파일 삭제 (완전 초기화) |
 | `make status` | 서비스 상태 확인 |
 | `make logs` | 전체 로그 tail (`make logs s=frontend`로 개별 서비스) |

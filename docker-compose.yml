@@ -1,6 +1,6 @@
 services:
   anvil:
-    image: ghcr.io/foundry-rs/foundry:latest
+    image: ghcr.io/foundry-rs/foundry@sha256:9e591221051112fe0bb530abcaba67f43f01ebbd12a94a8632d570d5e065a8bf
     entrypoint: ["anvil", "--host", "0.0.0.0"]
     ports:
       - "8545:8545"
@@ -11,15 +11,15 @@ services:
       retries: 10
 
   deployer:
-    image: ghcr.io/foundry-rs/foundry:latest
+    image: ghcr.io/foundry-rs/foundry@sha256:9e591221051112fe0bb530abcaba67f43f01ebbd12a94a8632d570d5e065a8bf
     user: root
     depends_on:
       anvil: { condition: service_healthy }
     volumes:
       - ./contracts:/contracts
-      - ./scripts:/scripts
+      - ./scripts:/scripts:ro
       - deployer-output:/shared
-      - .:/host-root
+      - ./.docker-addresses.json:/host-root/.docker-addresses.json
     working_dir: /contracts
     entrypoint: ["sh", "/scripts/deploy-local.sh"]
 

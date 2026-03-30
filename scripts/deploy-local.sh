@@ -1,23 +1,47 @@
 #!/bin/sh
 set -e
 
-RPC_URL="http://anvil:8545"
-SENDER="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+# Allow overriding via environment. Defaults are standard Anvil dev account.
+DEFAULT_SENDER="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+DEFAULT_PRIVATE_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+RPC_URL="${RPC_URL:-http://anvil:8545}"
+SENDER="${SENDER:-$DEFAULT_SENDER}"
+PRIVATE_KEY="${PRIVATE_KEY:-$DEFAULT_PRIVATE_KEY}"
+
+# Safety: refuse default dev key against non-local RPC
+if [ "$PRIVATE_KEY" = "$DEFAULT_PRIVATE_KEY" ]; then
+  case "$RPC_URL" in
+    http://anvil:*|http://localhost:*|http://127.0.0.1:*)
+      ;;
+    *)
+      echo "ERROR: Refusing to use default dev PRIVATE_KEY against non-local RPC_URL: $RPC_URL" >&2
+      exit 1
+      ;;
+  esac
+fi
 
 echo "=== Deploying contracts ==="
+# Capture output but ensure logs are printed even on failure
+set +e
 OUTPUT=$(forge script script/DeployLocal.s.sol:DeployLocalScript \
   --rpc-url "$RPC_URL" --broadcast \
   --sender "$SENDER" --private-key "$PRIVATE_KEY" 2>&1)
+FORGE_EXIT=$?
+set -e
 
 echo "$OUTPUT"
 
-# Parse deployed addresses from forge output
-FACTORY=$(echo "$OUTPUT" | grep 'RegistryFactory:' | awk '{print $NF}')
-VERIFIER=$(echo "$OUTPUT" | grep 'SP1VerifierGroth16' | awk '{print $NF}')
+if [ "$FORGE_EXIT" -ne 0 ]; then
+  echo "ERROR: forge deployment failed with exit code $FORGE_EXIT"
+  exit "$FORGE_EXIT"
+fi
 
-if [ -z "$FACTORY" ]; then
-  echo "ERROR: Failed to parse RegistryFactory address"
+# Parse deployed addresses from forge output
+FACTORY=$(echo "$OUTPUT" | awk '/RegistryFactory:/ {print $NF; exit}')
+VERIFIER=$(echo "$OUTPUT" | awk '/SP1VerifierGroth16/ {print $NF; exit}')
+
+if [ -z "$FACTORY" ] || [ -z "$VERIFIER" ]; then
+  echo "ERROR: Failed to parse contract addresses. Check forge output above."
   exit 1
 fi
 

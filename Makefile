@@ -5,7 +5,7 @@ up:                ## Start all services (build + deploy + run)
 	docker compose up --build -d
 	@echo ""
 	@echo "Waiting for deployer to finish..."
-	@docker compose wait deployer 2>/dev/null || true
+	@docker compose wait deployer 2>/dev/null
 	@docker compose logs deployer
 	@echo ""
 	@echo "Services running:"
@@ -16,10 +16,10 @@ up:                ## Start all services (build + deploy + run)
 	@echo ""
 	@cat .docker-addresses.json 2>/dev/null && echo "" || echo "Addresses not yet available. Run: make addresses"
 
-down:              ## Stop all services (keep volumes)
+down:              ## Stop all services (chain state resets on next up)
 	docker compose down
 
-clean:             ## Stop all services and remove volumes (requires redeploy)
+clean:             ## Stop all services, remove volumes, and clear cached addresses
 	docker compose down -v
 	rm -f .docker-addresses.json
 
