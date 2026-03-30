@@ -43,3 +43,4 @@ contracts/test/fixtures/groth16-fixture.json
 # Generated CA public key copy
 data/ca-certs/ca_pub.der
 .env.local
+.docker-addresses.json
