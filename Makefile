@@ -9,9 +9,10 @@ up:                ## Start all services (build + deploy + run)
 	@docker compose logs deployer
 	@echo ""
 	@echo "Services running:"
-	@echo "   Frontend  → http://localhost:3000"
-	@echo "   Backend   → http://localhost:4000"
-	@echo "   Anvil RPC → http://localhost:8545"
+	@echo "   Frontend   → http://localhost:3000"
+	@echo "   Backend    → http://localhost:4000"
+	@echo "   Anvil RPC  → http://localhost:8545"
+	@echo "   Chain ID   → 31337"
 	@echo ""
 	@cat .docker-addresses.json 2>/dev/null && echo "" || echo "Addresses not yet available. Run: make addresses"
 
