@@ -35,7 +35,7 @@ export interface RegistryMetadata {
   category: "dao" | "defi" | "corporate" | "other";
   website: string;
   tags: string[];
-  listed: boolean;
+  listed?: boolean;
 }
 
 export interface Announcement {
@@ -102,14 +102,14 @@ export function getCaRegistryRepoUrl(): string {
 
 // ── Registry Listing ──────────────────────────────
 
-/// Fetch listed registry addresses from backend.
-export async function getListedRegistries(): Promise<string[]> {
+/// Fetch listed registry addresses from backend. Returns null if backend is unreachable.
+export async function getListedRegistries(): Promise<string[] | null> {
   try {
     const res = await fetch(`${BACKEND_URL}/api/registries`);
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     return await res.json();
   } catch {
-    return [];
+    return null;
   }
 }
 

@@ -1727,11 +1727,18 @@ export default function AdminContent({ serviceName }: { serviceName?: string } =
                     <div className="flex items-center justify-between bg-surface-highest rounded-xl px-4 py-3">
                       <div>
                         <p className="text-sm font-label text-primary">List on Explorer</p>
-                        <p className="text-[10px] text-on-surface-variant">Show this registry in the public dashboard</p>
+                        <p className="text-[10px] text-on-surface-variant">
+                          {svcMetadata.listed !== false
+                            ? "This registry is visible on the public dashboard"
+                            : "This registry is hidden from the public dashboard"}
+                        </p>
                       </div>
                       <button
-                        onClick={() => setSvcMetadata((p) => ({ ...p, listed: !p.listed }))}
+                        onClick={() => setSvcMetadata((p) => ({ ...p, listed: !(p.listed ?? true) }))}
                         disabled={disabled}
+                        role="switch"
+                        aria-checked={svcMetadata.listed !== false}
+                        aria-label="List on Explorer"
                         className={`relative w-10 h-5 rounded-full transition-colors ${svcMetadata.listed !== false ? "bg-primary" : "bg-outline-variant/30"}`}
                       >
                         <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${svcMetadata.listed !== false ? "translate-x-5" : "translate-x-0.5"}`} />

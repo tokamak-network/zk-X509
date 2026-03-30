@@ -115,16 +115,19 @@ export default function DashboardPage() {
           provider,
         );
 
-        const [allAddresses, listedAddresses]: [string[], string[]] = await Promise.all([
+        const [allAddresses, listedAddresses]: [string[], string[] | null] = await Promise.all([
           factory.getRegistries(),
           getListedRegistries(),
         ]);
 
-        // Filter: show only listed registries (or all if backend returns empty)
-        const listedSet = new Set(listedAddresses.map((a: string) => a.toLowerCase()));
-        const visibleAddresses = listedSet.size > 0
-          ? allAddresses.filter((a: string) => listedSet.has(a.toLowerCase()))
-          : allAddresses;
+        // null = backend unreachable → show all on-chain registries
+        // [] = backend ok but nothing listed → show all (no one opted out yet)
+        // [...] = filter to only listed
+        let visibleAddresses = allAddresses;
+        if (listedAddresses && listedAddresses.length > 0) {
+          const listedSet = new Set(listedAddresses.map((l: string) => l.toLowerCase()));
+          visibleAddresses = allAddresses.filter((a: string) => listedSet.has(a.toLowerCase()));
+        }
 
         const cards: RegistryCard[] = [];
 

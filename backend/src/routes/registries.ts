@@ -29,7 +29,7 @@ interface RegistryEntry {
   category: string;
   website: string;
   tags: string[];
-  listed: boolean;
+  listed?: boolean;
   announcements: Announcement[];
   caGuides: Record<string, CaGuide>;
 }
@@ -37,6 +37,10 @@ interface RegistryEntry {
 type DB = Record<string, RegistryEntry>;
 
 function readDB(): DB {
+  if (!fs.existsSync(DB_PATH)) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+    fs.writeFileSync(DB_PATH, "{}", "utf-8");
+  }
   const raw = fs.readFileSync(DB_PATH, "utf-8");
   return JSON.parse(raw);
 }
