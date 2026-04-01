@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { ShieldCheck, Wallet, Send, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { useWallet } from "@/lib/wallet";
 import { truncateHex, isValidHex, parseContractError } from "@/lib/utils";
@@ -239,14 +240,12 @@ export default function DashboardContent() {
               <div className="space-y-2.5 text-xs text-on-surface-variant">
                 <p>
                   <span className="text-secondary font-bold">Step 1.</span> Download and open the <span className="text-primary font-bold">zk-X509</span> app.
-                  <a
-                    href="https://github.com/tokamak-network/zk-X509/releases/latest"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    href="/download"
                     className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 bg-secondary/10 text-secondary text-[10px] font-headline font-bold rounded-md hover:bg-secondary/20 transition-colors border border-secondary/20"
                   >
                     Download &darr;
-                  </a>
+                  </Link>
                 </p>
                 <p><span className="text-secondary font-bold">Step 2.</span> Enter the connection info when prompted:</p>
                 <div className="ml-6 grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
