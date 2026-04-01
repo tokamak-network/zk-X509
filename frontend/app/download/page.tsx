@@ -52,7 +52,7 @@ export default function DownloadPage() {
               Apple Silicon & Intel
             </p>
             <p className="text-on-surface-variant/60 text-xs mb-6">
-              macOS 13 Ventura or later
+              macOS 12 Monterey or later
             </p>
             <a
               href={MACOS_DOWNLOAD_URL}

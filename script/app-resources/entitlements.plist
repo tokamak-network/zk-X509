@@ -2,13 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- SP1 zkVM prover may use JIT for proof generation -->
 	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
 	<true/>
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
+	<!-- Network access for RPC calls to blockchain nodes -->
 	<key>com.apple.security.network.client</key>
 	<true/>
-	<key>com.apple.security.personal-information.addressbook</key>
-	<false/>
 </dict>
 </plist>

@@ -68,7 +68,8 @@ jobs:
 
           APP_VERSION="${GITHUB_REF_NAME#v}"
           cp script/app-resources/Info.plist "$APP_DIR/Contents/"
-          sed -i '' "s/0\.1\.0/$APP_VERSION/g" "$APP_DIR/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $APP_VERSION" "$APP_DIR/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $APP_VERSION" "$APP_DIR/Contents/Info.plist"
 
           cp "target/${{ matrix.target }}/release/interactive" "$APP_DIR/Contents/MacOS/interactive"
           cp script/app-resources/launcher.sh "$APP_DIR/Contents/MacOS/launcher"
@@ -78,8 +79,15 @@ jobs:
             cp script/app-resources/AppIcon.icns "$APP_DIR/Contents/Resources/"
           fi
 
-          if [ -d data/ca-certs ]; then
-            cp -r data/ca-certs "$APP_DIR/Contents/Resources/ca-certs"
+          if ls data/ca-certs-* >/dev/null 2>&1; then
+            mkdir -p "$APP_DIR/Contents/Resources/ca-certs"
+            for dir in data/ca-certs-*; do
+              [ -d "$dir" ] || continue
+              for cert in "$dir"/*.der; do
+                [ -f "$cert" ] || continue
+                cp "$cert" "$APP_DIR/Contents/Resources/ca-certs/"
+              done
+            done
           fi
 
       - name: Import Apple certificate (macOS)

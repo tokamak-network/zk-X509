@@ -242,6 +242,8 @@ export default function DashboardContent() {
                   <span className="text-secondary font-bold">Step 1.</span> Download and open the <span className="text-primary font-bold">zk-X509</span> app.
                   <Link
                     href="/download"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 bg-secondary/10 text-secondary text-[10px] font-headline font-bold rounded-md hover:bg-secondary/20 transition-colors border border-secondary/20"
                   >
                     Download &darr;

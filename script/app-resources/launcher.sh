@@ -11,12 +11,15 @@ if [ ! -x "$BINARY" ]; then
 fi
 
 # Open Terminal.app with the interactive binary
-osascript <<APPLESCRIPT
-set binPath to quoted form of "$BINARY"
-tell application "Terminal"
-    activate
-    set newTab to do script "clear && " & binPath & "; echo ''; echo 'Press Enter to close...'; read"
-    set custom title of newTab to "zk-X509 Proof Generator"
-    set title displays custom title of newTab to true
-end tell
+# Uses quoted heredoc and argv to prevent shell expansion issues
+osascript - "$BINARY" <<'APPLESCRIPT'
+on run argv
+    set binPath to quoted form of (item 1 of argv)
+    tell application "Terminal"
+        activate
+        set newTab to do script "clear && " & binPath & "; echo ''; echo 'Press Enter to close...'; read"
+        set custom title of newTab to "zk-X509 Proof Generator"
+        set title displays custom title of newTab to true
+    end tell
+end run
 APPLESCRIPT
