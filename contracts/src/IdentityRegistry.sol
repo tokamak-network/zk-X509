@@ -21,6 +21,11 @@ struct PublicValues {
     bytes32 commonNameHash;
 }
 
+/// @dev Minimal interface for reading vkey from RegistryFactory (avoids circular import).
+interface IRegistryFactory {
+    function currentProgramVKey() external view returns (bytes32);
+}
+
 /// @title IdentityRegistry
 /// @notice On-chain registry for ZK-verified X.509 certificate identities.
 /// @dev Users prove they hold a valid certificate (signed by a trusted CA)
@@ -31,7 +36,7 @@ contract IdentityRegistry is Initializable {
     /// @notice The SP1 on-chain verifier contract.
     ISP1Verifier public SP1_VERIFIER;
 
-    /// @notice The verification key for the ZK X.509 program.
+    /// @notice The verification key for the ZK X.509 program (used in standalone mode).
     bytes32 public PROGRAM_V_KEY;
 
     /// @notice Merkle root of allowed CA set (hides which specific CA issued the cert).
@@ -89,8 +94,11 @@ contract IdentityRegistry is Initializable {
     ///         0x00 = no disclosure required, 0x01 = country required, etc.
     uint8 public MIN_DISCLOSURE_MASK;
 
+    /// @notice Factory address. If set, vkey is read from factory (centrally managed).
+    address public factory;
+
     /// @dev Reserved storage gap for future upgradeable state variables.
-    uint256[50] private __gap;
+    uint256[49] private __gap;
 
     // ============ Events ============
 
@@ -103,6 +111,7 @@ contract IdentityRegistry is Initializable {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event IdentityRevoked(address indexed user, bytes32 indexed nullifier, bytes32 reason);
     event CaRootGracePeriodUpdated(uint256 oldPeriod, uint256 newPeriod);
+    event ProgramVKeyUpdated(bytes32 indexed newVKey);
     event Paused(address indexed by);
     event Unpaused(address indexed by);
 
@@ -137,6 +146,7 @@ contract IdentityRegistry is Initializable {
     error CaIndicesNotDescending(uint256 current, uint256 previous);
     error InsufficientDisclosure(uint8 proofMask, uint8 requiredMask);
     error InvalidDisclosureMask(uint8 mask);
+    error VKeyManagedByFactory();
 
     // ============ Modifiers ============
 
@@ -167,27 +177,30 @@ contract IdentityRegistry is Initializable {
 
     /// @notice Initialize the registry (called once via proxy).
     /// @param _sp1Verifier Address of the SP1 verifier contract.
-    /// @param _programVKey The verification key for the ZK X.509 SP1 program.
+    /// @param _programVKey The verification key for the ZK X.509 SP1 program (ignored if _factory is set).
     /// @param _maxWallets Max wallets per certificate (1 for DAO/voting, N for DeFi).
     /// @param _minDisclosureMask Minimum disclosure bitmask required (0x00 = none required).
     /// @param _maxProofAge Maximum allowed age of a proof in seconds (e.g., 3600 = 1 hour).
     /// @param _owner The initial owner of this registry.
+    /// @param _factory Factory address. If non-zero, vkey is read from factory (centrally managed).
     function initialize(
         address _sp1Verifier,
         bytes32 _programVKey,
         uint32 _maxWallets,
         uint8 _minDisclosureMask,
         uint256 _maxProofAge,
-        address _owner
+        address _owner,
+        address _factory
     ) external initializer {
         if (_sp1Verifier == address(0)) revert ZeroAddress();
         if (_sp1Verifier.code.length == 0) revert VerifierNotContract();
-        if (_programVKey == bytes32(0)) revert ZeroProgramVKey();
+        if (_factory == address(0) && _programVKey == bytes32(0)) revert ZeroProgramVKey();
         if (_owner == address(0)) revert ZeroAddress();
         if (_maxWallets == 0) revert ZeroMaxWallets();
         if (_minDisclosureMask > 0x0F) revert InvalidDisclosureMask(_minDisclosureMask);
         if (_maxProofAge < 5 minutes || _maxProofAge > 24 hours) revert ProofAgeOutOfRange(_maxProofAge, 5 minutes, 24 hours);
         SP1_VERIFIER = ISP1Verifier(_sp1Verifier);
+        factory = _factory;
         PROGRAM_V_KEY = _programVKey;
         MAX_WALLETS_PER_CERT = _maxWallets;
         MIN_DISCLOSURE_MASK = _minDisclosureMask;
@@ -237,7 +250,10 @@ contract IdentityRegistry is Initializable {
         nullifier = pv.nullifier;
         notAfter = pv.notAfter;
 
-        SP1_VERIFIER.verifyProof(PROGRAM_V_KEY, publicValues, proof);
+        bytes32 vkey = factory != address(0)
+            ? IRegistryFactory(factory).currentProgramVKey()
+            : PROGRAM_V_KEY;
+        SP1_VERIFIER.verifyProof(vkey, publicValues, proof);
     }
 
     // ============ External Functions ============
@@ -361,6 +377,16 @@ contract IdentityRegistry is Initializable {
     /// @notice Get all trusted CA hashes. Useful for off-chain Merkle proof generation.
     function getCaLeaves() external view returns (bytes32[] memory) {
         return caLeaves;
+    }
+
+    /// @notice Update the program verification key (standalone mode only).
+    /// @dev Reverts if this registry was created via a factory (vkey is managed by factory).
+    /// @param newVKey The new verification key.
+    function updateProgramVKey(bytes32 newVKey) external onlyOwner {
+        if (factory != address(0)) revert VKeyManagedByFactory();
+        if (newVKey == bytes32(0)) revert ZeroProgramVKey();
+        PROGRAM_V_KEY = newVKey;
+        emit ProgramVKeyUpdated(newVKey);
     }
 
     /// @notice Update the CRL Merkle root. Set bytes32(0) to disable CRL checking.

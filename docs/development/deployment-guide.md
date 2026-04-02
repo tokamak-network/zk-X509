@@ -200,7 +200,67 @@ cargo run --release --bin zk-x509 -- --prove \
 
 ---
 
-## 6. Post-deployment Monitoring
+## 7. Release-based Deployment Workflow
+
+When releasing a new version of the desktop app via GitHub Actions, follow this order to ensure the on-chain vkey matches the release binary.
+
+### Why this matters
+
+The SP1 program's ELF binary determines the vkey. The CI environment (Ubuntu runner) may produce a different ELF than your local machine, resulting in a different vkey. If the on-chain vkey doesn't match the release binary's vkey, users will get `ProofInvalid()` errors.
+
+### Step 1: Tag and push to trigger CI build
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The `release.yml` workflow will:
+1. Build the desktop app for macOS (ARM64 + x64)
+2. Extract the vkey from the CI-built binary
+3. Include the vkey in the GitHub Release notes
+
+### Step 2: Deploy (or update) the on-chain contract with the CI vkey
+
+**New deployment:**
+```bash
+# Copy the vkey from the GitHub Release notes
+export PROGRAM_V_KEY=0x...  # from CI release
+
+cd contracts
+forge script script/Deploy.s.sol --tc DeployScript \
+  --rpc-url $RPC_URL \
+  --broadcast \
+  --private-key $PRIVATE_KEY
+```
+
+**Existing deployment — update vkey on RegistryFactory:**
+```bash
+# Factory manages vkey for ALL registries (existing + new).
+# A single call updates vkey globally — no per-registry updates needed.
+cast send <FACTORY_ADDRESS> \
+  "updateProgramVKey(bytes32)" <NEW_VKEY> \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY
+```
+
+### Step 3: Users download the release
+
+Users download the app from the GitHub Release page. The binary's vkey is guaranteed to match the on-chain vkey because both originate from the same CI build.
+
+### Summary
+
+```
+CI Build (source of truth)
+  ├─ Desktop App binary  →  GitHub Release  →  Users download
+  └─ vkey extraction     →  Release notes   →  Admin deploys/updates on-chain
+```
+
+> **Rule:** Never deploy a contract vkey from a local build if the release binary comes from CI. Always use the CI-extracted vkey.
+
+---
+
+## 8. Post-deployment Monitoring
 
 ```bash
 # Check if a user is verified

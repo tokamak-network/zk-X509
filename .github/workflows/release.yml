@@ -58,6 +58,25 @@ jobs:
       - name: Build release binary
         run: cargo build --release --bin interactive --target ${{ matrix.target }}
 
+      - name: Extract vkey
+        id: vkey
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: |
+          VKEY=$(cargo run --release --bin vkey 2>/dev/null | grep -oE '0x[0-9a-fA-F]{64}')
+          echo "vkey=$VKEY" >> "$GITHUB_OUTPUT"
+          echo "## Program Verification Key" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "$VKEY" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "$VKEY" > vkey.txt
+
+      - name: Upload vkey
+        if: matrix.target == 'aarch64-apple-darwin'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vkey
+          path: vkey.txt
+
       - name: Create .app bundle (macOS)
         if: matrix.platform == 'macos-latest'
         run: |
@@ -157,8 +176,30 @@ jobs:
           pattern: ${{ env.APP_NAME }}-*
           merge-multiple: true
 
+      - name: Download vkey
+        uses: actions/download-artifact@v4
+        with:
+          name: vkey
+
+      - name: Read vkey
+        id: vkey
+        run: echo "value=$(cat vkey.txt)" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: "*.zip"
+          append_body: true
+          body: |
+
+            ---
+
+            ## Program Verification Key (vkey)
+
+            ```
+            ${{ steps.vkey.outputs.value }}
+            ```
+
+            > **Important:** Update RegistryFactory's vkey with this value before users download this release.
+            > See [Deployment Guide](docs/development/deployment-guide.md#7-release-based-deployment-workflow) for details.
           generate_release_notes: true

@@ -182,7 +182,7 @@ contract RegistryFactory {
         // Encode the initialize call for the proxy (uses latest VKey)
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(SP1_VERIFIER), currentProgramVKey, maxWallets, minDisclosureMask, maxProofAge, msg.sender)
+            (address(SP1_VERIFIER), currentProgramVKey, maxWallets, minDisclosureMask, maxProofAge, msg.sender, address(this))
         );
 
         BeaconProxy proxy = new BeaconProxy(address(beacon), initData);

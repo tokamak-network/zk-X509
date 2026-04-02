@@ -49,7 +49,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (verifier, vkey, maxWallets, mask, 3600, _owner)
+            (verifier, vkey, maxWallets, mask, 3600, _owner, address(0))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         return IdentityRegistry(address(proxy));
@@ -205,6 +205,37 @@ contract IdentityRegistryTest is Test {
         vm.prank(alice);
         vm.expectRevert(IdentityRegistry.OnlyOwner.selector);
         registry.pause();
+    }
+
+    function test_UpdateProgramVKey() public {
+        bytes32 newVKey = bytes32(uint256(0xBEEF));
+        registry.updateProgramVKey(newVKey);
+        assertEq(registry.PROGRAM_V_KEY(), newVKey);
+    }
+
+    function test_RevertUpdateProgramVKeyZero() public {
+        vm.expectRevert(IdentityRegistry.ZeroProgramVKey.selector);
+        registry.updateProgramVKey(bytes32(0));
+    }
+
+    function test_RevertUpdateProgramVKeyNotOwner() public {
+        vm.prank(alice);
+        vm.expectRevert(IdentityRegistry.OnlyOwner.selector);
+        registry.updateProgramVKey(bytes32(uint256(0xBEEF)));
+    }
+
+    function test_RevertUpdateProgramVKeyWhenFactoryMode() public {
+        // Deploy with factory set (simulating factory-created registry)
+        IdentityRegistry impl = new IdentityRegistry();
+        bytes memory initData = abi.encodeCall(
+            IdentityRegistry.initialize,
+            (address(mockVerifier), PROGRAM_V_KEY, 1, 0, 3600, address(this), address(0xFACE))
+        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
+        IdentityRegistry factoryRegistry = IdentityRegistry(address(proxy));
+
+        vm.expectRevert(IdentityRegistry.VKeyManagedByFactory.selector);
+        factoryRegistry.updateProgramVKey(bytes32(uint256(0xBEEF)));
     }
 
     function test_RevokeIdentity() public {
@@ -436,7 +467,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(mockVerifier), PROGRAM_V_KEY, 0, 0, 3600, address(this))
+            (address(mockVerifier), PROGRAM_V_KEY, 0, 0, 3600, address(this), address(0))
         );
         vm.expectRevert(abi.encodeWithSelector(IdentityRegistry.ZeroMaxWallets.selector));
         new ERC1967Proxy(address(impl), initData);
@@ -447,7 +478,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(0xDEAD), PROGRAM_V_KEY, 1, 0, 3600, address(this))
+            (address(0xDEAD), PROGRAM_V_KEY, 1, 0, 3600, address(this), address(0))
         );
         vm.expectRevert(abi.encodeWithSelector(IdentityRegistry.VerifierNotContract.selector));
         new ERC1967Proxy(address(impl), initData);
@@ -457,7 +488,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(mockVerifier), bytes32(0), 1, 0, 3600, address(this))
+            (address(mockVerifier), bytes32(0), 1, 0, 3600, address(this), address(0))
         );
         vm.expectRevert(abi.encodeWithSelector(IdentityRegistry.ZeroProgramVKey.selector));
         new ERC1967Proxy(address(impl), initData);
@@ -537,7 +568,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(mockVerifier), PROGRAM_V_KEY, 1, 0, 5 minutes, address(this))
+            (address(mockVerifier), PROGRAM_V_KEY, 1, 0, 5 minutes, address(this), address(0))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         IdentityRegistry customReg = IdentityRegistry(address(proxy));
@@ -549,7 +580,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(mockVerifier), PROGRAM_V_KEY, 1, 0, 5 minutes, address(this))
+            (address(mockVerifier), PROGRAM_V_KEY, 1, 0, 5 minutes, address(this), address(0))
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         IdentityRegistry shortAgeRegistry = IdentityRegistry(address(proxy));
@@ -943,7 +974,7 @@ contract IdentityRegistryTest is Test {
         IdentityRegistry impl = new IdentityRegistry();
         bytes memory initData = abi.encodeCall(
             IdentityRegistry.initialize,
-            (address(mockVerifier), PROGRAM_V_KEY, 1, 0x10, 3600, address(this))
+            (address(mockVerifier), PROGRAM_V_KEY, 1, 0x10, 3600, address(this), address(0))
         );
         vm.expectRevert(
             abi.encodeWithSelector(IdentityRegistry.InvalidDisclosureMask.selector, uint8(0x10))
