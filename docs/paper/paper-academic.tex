@@ -150,7 +150,7 @@ verification inside the zkVM, (5) binding to a specific blockchain
 address, and (6) configurable nullifier generation for Sybil resistance.
 Thirteen public values are committed, including a nullifier, a CA Merkle
 root that hides the issuing CA's identity, the certificate's expiry
-timestamp, and four optional selective disclosure hashes. On-chain
+timestamp, and four optional selective disclosure fields. On-chain
 verification status automatically lapses upon certificate expiry.
 
 We formalize the security model under a Dolev-Yao adversary and
@@ -287,7 +287,7 @@ without revealing which CA), a \textbf{timestamp}, the
 \textbf{expiry time} (\texttt{notAfter}), a \textbf{chain ID} (EIP-155
 \cite{ref28}), a \textbf{registry address} (cross-DApp unlinkability), a
 \textbf{CRL Merkle root}, and four optional \textbf{selective disclosure
-hashes} (country, organization, organizational unit, common name). These
+fields} (country, organization, organizational unit, common name). These
 are committed as public outputs and verified on-chain by a Solidity
 smart contract.
 
@@ -753,9 +753,8 @@ via SP1 stdin. \textbf{NOTE:} no private key.
   $\text{notAfter} \leftarrow \text{cert.notAfter}$
 \item \textit{Verify CA Merkle membership:}
   $\text{MerkleVerify}(\text{caRootHash}, \pi_{\text{ca}}, \text{ca\_merkle\_root})$
-\item \textit{Selective disclosure} (salted with private-key-derived salt):\\
-  $\text{salt} \leftarrow \mathcal{H}(\text{``zk-X509-Disclosure-Salt-v1''} \| \text{nullifier\_sig})$;\\
-  for each masked bit: $\text{hash} \leftarrow \mathcal{H}(\text{field} \| \text{salt})$ or $\texttt{0x0}$
+\item \textit{Selective disclosure} (plaintext in \texttt{bytes32}):\\
+  for each masked bit: $\text{field\_utf8}$ right-padded to 32 bytes, or $\texttt{0x0}$ if unset
 \item \textit{Commit public values} (caMerkleRoot, NOT caRootHash)
 \end{enumerate}
 
@@ -816,10 +815,10 @@ Field & Type & Description \\
 \texttt{chainId} & \texttt{uint64} & EIP-155 chain ID \\
 \texttt{registryAddress} & \texttt{address} & Target registry address \\
 \texttt{crlMerkleRoot} & \texttt{bytes32} & CRL Merkle root (\texttt{0} = disabled) \\
-\texttt{countryHash} & \texttt{bytes32} & $\mathcal{H}(\text{country} \| \text{salt})$ or \texttt{0x0} \\
-\texttt{orgHash} & \texttt{bytes32} & $\mathcal{H}(\text{organization} \| \text{salt})$ or \texttt{0x0} \\
-\texttt{orgUnitHash} & \texttt{bytes32} & $\mathcal{H}(\text{org unit} \| \text{salt})$ or \texttt{0x0} \\
-\texttt{commonNameHash} & \texttt{bytes32} & $\mathcal{H}(\text{common name} \| \text{salt})$ or \texttt{0x0} \\
+\texttt{countryHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{orgHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{orgUnitHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{commonNameHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -840,9 +839,9 @@ separately on each chain, enabling per-chain and per-DApp Sybil
 resistance policies. The \texttt{crlMerkleRoot} field commits the CRL
 Sorted Merkle Tree root, enabling on-chain validation of revocation
 checking (\texttt{bytes32(0)} disables CRL enforcement). The four
-disclosure hash fields enable selective attribute disclosure (Section
-3.11) --- each field is either the SHA-256 hash of the corresponding
-certificate attribute salted with a private-key-derived salt (when
+disclosure fields enable selective attribute disclosure (Section
+3.11) --- each field contains the UTF-8 plaintext of the corresponding
+certificate attribute right-padded to 32 bytes (when
 disclosed) or zero (when hidden), controlled by the user's
 \texttt{disclosure\_mask}.
 
@@ -984,8 +983,9 @@ The circuit asserts \texttt{wallet\_index\ \textless{}\ max\_wallets}
 before proceeding. All private inputs remain hidden within the ZK proof.
 The thirteen public values committed are: nullifier, caMerkleRoot,
 timestamp, registrant, walletIndex, notAfter, chainId, registryAddress,
-crlMerkleRoot, and four selective disclosure hashes (countryHash,
-orgHash, orgUnitHash, commonNameHash --- zero when not disclosed).
+crlMerkleRoot, and four selective disclosure fields (countryHash,
+orgHash, orgUnitHash, commonNameHash --- UTF-8 plaintext in bytes32 when
+disclosed, zero when hidden).
 
 \textbf{Certificate Parsing.} We use the \texttt{x509-parser} crate
 (v0.16) with \texttt{default-features\ =\ false} to parse DER-encoded
@@ -1450,32 +1450,37 @@ Bit & Field & X.509 OID & Example \\
 \end{longtable}
 
 For each bit set in the mask, the circuit extracts the corresponding
-field from the certificate's subject DN, hashes it with a
-\textbf{private-key-derived salt}, and commits the hash as a public
-value. For unset bits, zero is committed. The salt is computed as
-\(\mathcal{H}(\text{"zk-X509-Disclosure-Salt-v1"} \| \text{nullifier\_sig})\),
-where \texttt{nullifier\_sig} is the deterministic signature used for
-nullifier generation. This salt is deterministic (same certificate
-always produces the same salt) yet private (only the private key holder
-can compute \texttt{nullifier\_sig}), preventing brute-force attacks on
-small input spaces such as country codes ($\sim$200 values).
-Without this salt, an attacker could precompute
-\(\mathcal{H}(\text{"KR"})\), \(\mathcal{H}(\text{"US"})\), etc., and
-match against on-chain \texttt{countryHash} values. With the salt, each
-user's hashes are unique and unpredictable.
+field from the certificate's subject DN and commits the UTF-8 plaintext
+right-padded to 32 bytes as a public value. For unset bits, zero is
+committed. Values exceeding 32 bytes are truncated, which is sufficient
+for practical fields (country codes are 2 bytes; Korean organization
+names are typically under 30 bytes in UTF-8).
+
+This design intentionally reveals the \emph{actual} field value rather
+than a hash, because disclosure means the user consents to public
+visibility. Service operators can directly read disclosed fields on-chain
+(e.g., filtering by country or distinguishing individual from business
+certificates via the Organization field).
 
 \textbf{User sovereignty.} The \texttt{disclosure\_mask} is chosen by
 the user at proof generation time, not by the verifier. The same
 certificate can produce different proofs for different applications: a
-DAO voting contract may require only \texttt{countryHash}, while a
-corporate DeFi protocol may additionally require \texttt{orgHash}. The
-user decides what to reveal on a per-proof basis.
+DAO voting contract may require only country disclosure, while a
+corporate DeFi protocol may additionally require organization disclosure.
+The user decides what to reveal on a per-proof basis.
 
-\textbf{Privacy guarantee.} Fields with mask bit = 0 produce a zero hash
+\textbf{Privacy guarantee.} Fields with mask bit = 0 produce zero
 in the public values, revealing no information. The ZK zero-knowledge
 property ensures that even the \emph{existence} of undisclosed fields is
 hidden --- the verifier cannot distinguish ``field is empty in the
 certificate'' from ``field exists but was not disclosed.''
+
+\textbf{Business identity use case.} By requiring disclosure of the
+Organization (O) field (\texttt{minDisclosureMask} bit 1), a service can
+distinguish individual certificates (\texttt{orgHash} = \texttt{0x0},
+since individual certificates lack an Organization field) from business
+certificates (\texttt{orgHash} $\neq$ \texttt{0x0}). This enables
+policies such as ``only business entities may register.''
 
 \subsection{CA-Anonymous Verification via Merkle
 Tree}\label{ca-anonymous-verification-via-merkle-tree}
@@ -1564,9 +1569,9 @@ delays \\
 Gas payment source & Trace ETH funding of the registrant address to a
 jurisdiction & Use fresh wallets funded via privacy-preserving
 bridges \\
-Selective disclosure & \texttt{countryHash} directly reveals
-jurisdiction, reducing anonymity set to single-country users &
-User-controlled --- do not disclose unless required \\
+Selective disclosure & Disclosed fields reveal plaintext attributes
+(e.g., country, organization), reducing anonymity &
+User-controlled --- do not disclose unless required by service policy \\
 Transaction volume & Low-population CAs (e.g., Estonia
 $\sim$1.3M) have fewer active blockchain users, making
 correlation easier & Whitelist CAs with large user populations \\
