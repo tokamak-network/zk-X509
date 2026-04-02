@@ -200,13 +200,13 @@ cargo run --release --bin zk-x509 -- --prove \
 
 ---
 
-## 7. Release-based Deployment Workflow
+## 6. Release-based Deployment Workflow
 
 When releasing a new version of the desktop app via GitHub Actions, follow this order to ensure the on-chain vkey matches the release binary.
 
 ### Why this matters
 
-The SP1 program's ELF binary determines the vkey. The CI environment (Ubuntu runner) may produce a different ELF than your local machine, resulting in a different vkey. If the on-chain vkey doesn't match the release binary's vkey, users will get `ProofInvalid()` errors.
+The SP1 program's ELF binary determines the vkey. The GitHub Actions macOS release runner environment may produce a different ELF than your local machine, resulting in a different vkey. If the on-chain vkey doesn't match the release binary's vkey, users will get `ProofInvalid()` errors.
 
 ### Step 1: Tag and push to trigger CI build
 
@@ -260,7 +260,7 @@ CI Build (source of truth)
 
 ---
 
-## 8. Post-deployment Monitoring
+## 7. Post-deployment Monitoring
 
 ```bash
 # Check if a user is verified

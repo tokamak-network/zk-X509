@@ -62,7 +62,16 @@ jobs:
         id: vkey
         if: matrix.target == 'aarch64-apple-darwin'
         run: |
-          VKEY=$(cargo run --release --bin vkey 2>/dev/null | grep -oE '0x[0-9a-fA-F]{64}')
+          VKEY=$(cargo run --locked --release --bin vkey 2>/dev/null | grep -oE '0x[0-9a-fA-F]{64}')
+          if [ -z "$VKEY" ]; then
+            echo "::error::vkey extraction failed: no 0x-prefixed 64-char hex value found"
+            exit 1
+          fi
+          MATCH_COUNT=$(echo "$VKEY" | wc -l | tr -d ' ')
+          if [ "$MATCH_COUNT" -ne 1 ]; then
+            echo "::error::vkey extraction failed: expected exactly 1 match, got $MATCH_COUNT"
+            exit 1
+          fi
           echo "vkey=$VKEY" >> "$GITHUB_OUTPUT"
           echo "## Program Verification Key" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -201,5 +210,5 @@ jobs:
             ```
 
             > **Important:** Update RegistryFactory's vkey with this value before users download this release.
-            > See [Deployment Guide](docs/development/deployment-guide.md#7-release-based-deployment-workflow) for details.
+            > See [Deployment Guide](docs/development/deployment-guide.md#6-release-based-deployment-workflow) for details.
           generate_release_notes: true

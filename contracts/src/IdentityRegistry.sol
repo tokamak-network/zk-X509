@@ -147,6 +147,7 @@ contract IdentityRegistry is Initializable {
     error InsufficientDisclosure(uint8 proofMask, uint8 requiredMask);
     error InvalidDisclosureMask(uint8 mask);
     error VKeyManagedByFactory();
+    error FactoryNotContract();
 
     // ============ Modifiers ============
 
@@ -194,14 +195,22 @@ contract IdentityRegistry is Initializable {
     ) external initializer {
         if (_sp1Verifier == address(0)) revert ZeroAddress();
         if (_sp1Verifier.code.length == 0) revert VerifierNotContract();
-        if (_factory == address(0) && _programVKey == bytes32(0)) revert ZeroProgramVKey();
         if (_owner == address(0)) revert ZeroAddress();
         if (_maxWallets == 0) revert ZeroMaxWallets();
         if (_minDisclosureMask > 0x0F) revert InvalidDisclosureMask(_minDisclosureMask);
         if (_maxProofAge < 5 minutes || _maxProofAge > 24 hours) revert ProofAgeOutOfRange(_maxProofAge, 5 minutes, 24 hours);
+
+        if (_factory != address(0)) {
+            // Factory mode: vkey is managed by the factory contract
+            if (_factory.code.length == 0) revert FactoryNotContract();
+            factory = _factory;
+        } else {
+            // Standalone mode: vkey must be provided and stored locally
+            if (_programVKey == bytes32(0)) revert ZeroProgramVKey();
+            PROGRAM_V_KEY = _programVKey;
+        }
+
         SP1_VERIFIER = ISP1Verifier(_sp1Verifier);
-        factory = _factory;
-        PROGRAM_V_KEY = _programVKey;
         MAX_WALLETS_PER_CERT = _maxWallets;
         MIN_DISCLOSURE_MASK = _minDisclosureMask;
         maxProofAge = _maxProofAge;
@@ -250,10 +259,22 @@ contract IdentityRegistry is Initializable {
         nullifier = pv.nullifier;
         notAfter = pv.notAfter;
 
-        bytes32 vkey = factory != address(0)
-            ? IRegistryFactory(factory).currentProgramVKey()
-            : PROGRAM_V_KEY;
-        SP1_VERIFIER.verifyProof(vkey, publicValues, proof);
+        SP1_VERIFIER.verifyProof(_getVKey(), publicValues, proof);
+    }
+
+    /// @dev Resolve the effective vkey: from factory (if set) or local storage.
+    function _getVKey() internal view returns (bytes32) {
+        if (factory != address(0)) {
+            return IRegistryFactory(factory).currentProgramVKey();
+        }
+        return PROGRAM_V_KEY;
+    }
+
+    /// @notice Returns the vkey actually used for proof verification.
+    /// @dev In factory mode, reads from factory.currentProgramVKey().
+    ///      In standalone mode, returns the locally stored PROGRAM_V_KEY.
+    function effectiveProgramVKey() external view returns (bytes32) {
+        return _getVKey();
     }
 
     // ============ External Functions ============

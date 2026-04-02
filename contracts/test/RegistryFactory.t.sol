@@ -250,9 +250,13 @@ contract RegistryFactoryTest is Test {
         vm.prank(bob);
         address reg2 = factory.createRegistry("V2", 1, 0, 3600);
 
-        // reg1 has old VKey, reg2 has new VKey
-        assertEq(IdentityRegistry(reg1).PROGRAM_V_KEY(), PROGRAM_V_KEY);
-        assertEq(IdentityRegistry(reg2).PROGRAM_V_KEY(), newVKey);
+        // Factory-created registries don't store vkey locally (PROGRAM_V_KEY == 0).
+        // They read the effective vkey from the factory at verification time.
+        assertEq(IdentityRegistry(reg1).PROGRAM_V_KEY(), bytes32(0));
+        assertEq(IdentityRegistry(reg2).PROGRAM_V_KEY(), bytes32(0));
+        // effectiveProgramVKey() returns the factory's current vkey for both
+        assertEq(IdentityRegistry(reg1).effectiveProgramVKey(), newVKey);
+        assertEq(IdentityRegistry(reg2).effectiveProgramVKey(), newVKey);
 
         // RegistryInfo tracks version numbers
         (,,,,,,uint256 v1) = factory.registryInfo(reg1);
