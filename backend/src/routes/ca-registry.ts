@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { verifyMessage } from "ethers";
 import { createCaRegistryPr, type CaRegistryFiles } from "../services/github";
 
 interface CaGuide {
@@ -57,6 +58,39 @@ router.post("/pr", async (req, res) => {
       res.status(400).json({ error: `Invalid cert hash: ${cert.hashHex}` });
       return;
     }
+  }
+
+  // Verify wallet signature — prevents spam PRs from forged requests
+  try {
+    const recovered = verifyMessage(signatureMessage, signature).toLowerCase();
+    if (recovered !== adminAddress.toLowerCase()) {
+      res.status(403).json({ error: "Signature does not match adminAddress" });
+      return;
+    }
+  } catch {
+    res.status(400).json({ error: "Invalid signature" });
+    return;
+  }
+
+  // Verify signed message binds to this request's parameters
+  const expectedMessage = [
+    "zk-x509-ca-registry",
+    `Chain ID: ${chainId}`,
+    `Registry: ${registryAddress.toLowerCase()}`,
+    `Admin: ${adminAddress.toLowerCase()}`,
+    `Operation: ${operation}`,
+    `Timestamp: ${signatureTimestamp}`,
+  ].join("\n");
+  if (signatureMessage !== expectedMessage) {
+    res.status(400).json({ error: "Signature message does not match request parameters" });
+    return;
+  }
+
+  // Reject stale signatures (> 10 minutes)
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - signatureTimestamp) > 600) {
+    res.status(400).json({ error: "Signature expired (>10 min)" });
+    return;
   }
 
   if (!process.env.CA_REGISTRY_GITHUB_TOKEN) {
