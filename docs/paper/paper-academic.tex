@@ -1475,15 +1475,15 @@ jurisdiction-specific regulations; a DAO can read \texttt{org} to verify
 corporate membership---all on-chain, without external oracle calls or
 off-chain verification rounds.
 
-\textbf{User sovereignty.} The \texttt{disclosure\_mask} is chosen by
-the user at proof generation time, not by the service. The same
-certificate can produce different proofs for different applications: a
-DAO voting contract may require only country disclosure, while a
-corporate DeFi protocol may additionally require organization disclosure.
-The user decides what to reveal on a per-proof basis. Services specify
-their minimum requirements via \texttt{minDisclosureMask}; the user must
-meet or exceed these requirements, but may disclose additional fields
-voluntarily.
+\textbf{Service-defined policy.} Each service sets a
+\texttt{minDisclosureMask} at deployment time, specifying which fields
+must be disclosed for registration. A DAO voting contract may require
+only country disclosure, while a corporate DeFi lending protocol may
+require both country and organization. Users who register with that
+service must meet the policy; the smart contract rejects proofs with
+insufficient disclosure. This gives service operators the same
+policy-setting capability they have off-chain (e.g., ``business accounts
+require company name''), now enforced trustlessly on-chain.
 
 \textbf{Privacy guarantee.} Fields with mask bit = 0 produce zero
 in the public values, revealing no information. The ZK zero-knowledge
