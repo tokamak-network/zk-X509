@@ -309,74 +309,54 @@ const OID_ORG: &[u8]      = &[0x55, 0x04, 0x0A]; // 2.5.4.10
 const OID_ORG_UNIT: &[u8] = &[0x55, 0x04, 0x0B]; // 2.5.4.11
 const OID_CN: &[u8]       = &[0x55, 0x04, 0x03]; // 2.5.4.3
 
-/// Extract disclosable fields from X.509 subject in a single pass.
-/// hash = SHA-256(len1 ‖ val1 ‖ len2 ‖ val2 ‖ ... ‖ salt)
-/// Length-prefixed encoding prevents concatenation ambiguity.
-/// Salted with a deterministic secret (derived from nullifier_sig) to prevent
-/// brute-force on small input spaces (e.g., ~200 country codes).
-///
-/// Optimized: fixed-size arrays (no heap Vec), streaming SHA-256 (no preimage Vec).
-// X.509 subject fields rarely have more than 2 values per OID.
-// Panic if exceeded to prevent silent hash divergence.
-const MAX_FIELD_VALUES: usize = 4;
-
-fn extract_subject_field_hashes(
+/// Extract disclosable fields from X.509 subject as plaintext in bytes32.
+/// Disclosure ON  → first value, UTF-8 right-padded to 32 bytes (truncated if >32).
+/// Disclosure OFF → bytes32(0).
+/// If a field has no value (e.g., individual cert with no Organization), returns bytes32(0).
+fn extract_subject_fields(
     subject: &x509_parser::x509::X509Name,
     mask: u8,
-    salt: &[u8],
 ) -> ([u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
     let zero: [u8; 32] = [0u8; 32];
     let effective_mask = mask & 0x0F;
     if effective_mask == 0 { return (zero, zero, zero, zero); }
 
-    // Fixed-size arrays — no heap allocation
-    let mut country_vals: [Option<&str>; MAX_FIELD_VALUES] = [None; MAX_FIELD_VALUES];
-    let mut org_vals: [Option<&str>; MAX_FIELD_VALUES] = [None; MAX_FIELD_VALUES];
-    let mut ou_vals: [Option<&str>; MAX_FIELD_VALUES] = [None; MAX_FIELD_VALUES];
-    let mut cn_vals: [Option<&str>; MAX_FIELD_VALUES] = [None; MAX_FIELD_VALUES];
-    let mut counts = [0usize; 4]; // [country, org, ou, cn]
+    let mut country_val: Option<&str> = None;
+    let mut org_val: Option<&str> = None;
+    let mut ou_val: Option<&str> = None;
+    let mut cn_val: Option<&str> = None;
 
-    // Single pass: only collect fields included in disclosure mask.
-    // Undisclosed fields are skipped entirely (no assert, no DoS on valid certs).
-    // Disclosed fields assert on overflow to prevent silent hash divergence.
+    // Single pass: collect the first value for each disclosed field.
     for attr in subject.iter_attributes() {
         let oid_bytes = attr.attr_type().as_bytes();
         if let Ok(value) = attr.as_str() {
-            if oid_bytes == OID_COUNTRY && effective_mask & 0x01 != 0 {
-                assert!(counts[0] < MAX_FIELD_VALUES, "Too many Country values");
-                country_vals[counts[0]] = Some(value); counts[0] += 1;
-            } else if oid_bytes == OID_ORG && effective_mask & 0x02 != 0 {
-                assert!(counts[1] < MAX_FIELD_VALUES, "Too many Org values");
-                org_vals[counts[1]] = Some(value); counts[1] += 1;
-            } else if oid_bytes == OID_ORG_UNIT && effective_mask & 0x04 != 0 {
-                assert!(counts[2] < MAX_FIELD_VALUES, "Too many OrgUnit values");
-                ou_vals[counts[2]] = Some(value); counts[2] += 1;
-            } else if oid_bytes == OID_CN && effective_mask & 0x08 != 0 {
-                assert!(counts[3] < MAX_FIELD_VALUES, "Too many CN values");
-                cn_vals[counts[3]] = Some(value); counts[3] += 1;
+            if oid_bytes == OID_COUNTRY && effective_mask & 0x01 != 0 && country_val.is_none() {
+                country_val = Some(value);
+            } else if oid_bytes == OID_ORG && effective_mask & 0x02 != 0 && org_val.is_none() {
+                org_val = Some(value);
+            } else if oid_bytes == OID_ORG_UNIT && effective_mask & 0x04 != 0 && ou_val.is_none() {
+                ou_val = Some(value);
+            } else if oid_bytes == OID_CN && effective_mask & 0x08 != 0 && cn_val.is_none() {
+                cn_val = Some(value);
             }
         }
     }
 
-    // Streaming hash: feed directly into SHA-256, no intermediate Vec
-    let hash_field = |vals: &mut [Option<&str>; MAX_FIELD_VALUES], count: usize| -> [u8; 32] {
-        if count == 0 { return zero; }
-        // Sort the populated slice
-        let slice = &mut vals[..count];
-        slice.sort();
-        let mut hasher = Sha256::new();
-        for v in slice.iter().flatten() {
-            hasher.update((v.len() as u32).to_be_bytes());
-            hasher.update(v.as_bytes());
+    /// Encode a string value into bytes32: UTF-8 right-padded, truncated at 32 bytes.
+    fn to_bytes32(val: Option<&str>) -> [u8; 32] {
+        let mut out = [0u8; 32];
+        if let Some(s) = val {
+            let bytes = s.as_bytes();
+            let len = bytes.len().min(32);
+            out[..len].copy_from_slice(&bytes[..len]);
         }
-        hasher.update(salt);
-        hasher.finalize().into()
-    };
+        out
+    }
 
-    let country  = if effective_mask & 0x01 != 0 { hash_field(&mut country_vals, counts[0]) } else { zero };
-    let org      = if effective_mask & 0x02 != 0 { hash_field(&mut org_vals, counts[1]) } else { zero };
-    let org_unit = if effective_mask & 0x04 != 0 { hash_field(&mut ou_vals, counts[2]) } else { zero };
-    let cn       = if effective_mask & 0x08 != 0 { hash_field(&mut cn_vals, counts[3]) } else { zero };
+    let country  = if effective_mask & 0x01 != 0 { to_bytes32(country_val) } else { zero };
+    let org      = if effective_mask & 0x02 != 0 { to_bytes32(org_val) } else { zero };
+    let org_unit = if effective_mask & 0x04 != 0 { to_bytes32(ou_val) } else { zero };
+    let cn       = if effective_mask & 0x08 != 0 { to_bytes32(cn_val) } else { zero };
 
     (country, org, org_unit, cn)
 }
@@ -674,20 +654,12 @@ pub fn main() {
     let not_after = user_cert.validity().not_after.timestamp() as u64;
 
     // ========================================
-    // Step 9: Selective Disclosure (single-pass, salted)
+    // Step 9: Selective Disclosure (plaintext in bytes32)
     // ========================================
-    // Disclosure salt = H("zk-X509-Disclosure-Salt-v1" ‖ nullifier_sig)
-    // - Deterministic: same cert → same nullifier_sig → same salt (no storage needed)
-    // - Private: attacker cannot compute salt without the private key
-    // - Prevents brute-force on small input spaces (e.g., ~200 country codes)
-    const DISCLOSURE_SALT_DOMAIN: &[u8] = b"zk-X509-Disclosure-Salt-v1";
-    let mut salt_hasher = Sha256::new();
-    salt_hasher.update(DISCLOSURE_SALT_DOMAIN);
-    salt_hasher.update(&nullifier_sig);
-    let disclosure_salt: [u8; 32] = salt_hasher.finalize().into();
-
+    // Disclosure ON  → UTF-8 plaintext right-padded to bytes32 (truncated at 32 bytes)
+    // Disclosure OFF → bytes32(0)
     let (country_hash, org_hash, org_unit_hash, cn_hash) =
-        extract_subject_field_hashes(&user_cert.subject(), disclosure_mask, &disclosure_salt);
+        extract_subject_fields(&user_cert.subject(), disclosure_mask);
 
     let bytes = PublicValuesStruct::abi_encode(&PublicValuesStruct {
         nullifier: nullifier.into(),
