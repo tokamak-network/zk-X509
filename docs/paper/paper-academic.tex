@@ -1515,11 +1515,13 @@ Bit & Field & X.509 OID & Example \\
 \end{longtable}
 
 For each bit set in the mask, the circuit extracts the corresponding
-field from the certificate's subject DN and commits the UTF-8 plaintext
-right-padded to 32 bytes as a public value. For unset bits, zero is
-committed. Values exceeding 32 bytes are truncated, which is sufficient
-for practical fields (country codes are 2 bytes; Korean organization
-names are typically under 30 bytes in UTF-8).
+field from the certificate's subject DN and commits its UTF-8 encoding,
+right-padded with zeros to 32 bytes, as a public value. For unset bits,
+zero is committed. Values whose UTF-8 encoding exceeds 32 bytes are
+truncated on a UTF-8 character boundary (never splitting a multi-byte
+codepoint), which is sufficient for practical fields (country codes are
+2 bytes; Korean organization names are typically under 30 bytes in
+UTF-8).
 
 \textbf{Plaintext disclosure by design.} Disclosed fields are committed
 as readable plaintext rather than hashes, because disclosure represents

@@ -116,7 +116,7 @@ $$\text{nullifier} = \text{SHA256}(\text{Sign}(sk, \text{domain}) \| \text{walle
 | 3 | Common Name (CN) | (이름 — 보통 비공개) |
 
 - 사용자가 `disclosure_mask`로 선택 → **User sovereignty**
-- private-key-derived salt로 brute-force 방지
+- plaintext right-padded to bytes32로 온체인 직접 비교 가능
 
 ### 4.6 Configurable Registration Policy
 
@@ -141,10 +141,10 @@ struct PublicValuesStruct {
     uint64  chainId;          // EIP-155 크로스체인 방어
     address registryAddress;  // 크로스 DApp unlinkability
     bytes32 crlMerkleRoot;    // CRL 검증 상태
-    bytes32 countryHash;      // 선택적 공개
-    bytes32 orgHash;          // 선택적 공개
-    bytes32 orgUnitHash;      // 선택적 공개
-    bytes32 commonNameHash;   // 선택적 공개
+    bytes32 country;          // 선택적 공개
+    bytes32 org;              // 선택적 공개
+    bytes32 orgUnit;          // 선택적 공개
+    bytes32 commonName;       // 선택적 공개
 }
 ```
 

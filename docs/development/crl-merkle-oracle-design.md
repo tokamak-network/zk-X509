@@ -209,10 +209,10 @@ struct PublicValuesStruct {
     uint64 chainId;
     address registryAddress;
     bytes32 crlMerkleRoot;    // 🆕 CRL SMT root (bytes32(0) = CRL 미사용)
-    bytes32 countryHash;
-    bytes32 orgHash;
-    bytes32 orgUnitHash;
-    bytes32 commonNameHash;
+    bytes32 country;
+    bytes32 org;
+    bytes32 orgUnit;
+    bytes32 commonName;
 }
 ```
 

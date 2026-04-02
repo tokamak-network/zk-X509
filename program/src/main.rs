@@ -330,25 +330,38 @@ fn extract_subject_fields(
     for attr in subject.iter_attributes() {
         let oid_bytes = attr.attr_type().as_bytes();
         if let Ok(value) = attr.as_str() {
-            if oid_bytes == OID_COUNTRY && effective_mask & 0x01 != 0 && country_val.is_none() {
-                country_val = Some(value);
-            } else if oid_bytes == OID_ORG && effective_mask & 0x02 != 0 && org_val.is_none() {
-                org_val = Some(value);
-            } else if oid_bytes == OID_ORG_UNIT && effective_mask & 0x04 != 0 && ou_val.is_none() {
-                ou_val = Some(value);
-            } else if oid_bytes == OID_CN && effective_mask & 0x08 != 0 && cn_val.is_none() {
-                cn_val = Some(value);
+            match oid_bytes {
+                OID_COUNTRY if (effective_mask & 0x01) != 0 && country_val.is_none() => {
+                    country_val = Some(value);
+                }
+                OID_ORG if (effective_mask & 0x02) != 0 && org_val.is_none() => {
+                    org_val = Some(value);
+                }
+                OID_ORG_UNIT if (effective_mask & 0x04) != 0 && ou_val.is_none() => {
+                    ou_val = Some(value);
+                }
+                OID_CN if (effective_mask & 0x08) != 0 && cn_val.is_none() => {
+                    cn_val = Some(value);
+                }
+                _ => (),
             }
         }
     }
 
-    /// Encode a string value into bytes32: UTF-8 right-padded, truncated at 32 bytes.
+    /// Encode a string value into bytes32: UTF-8 right-padded, truncated at 32 bytes
+    /// on a UTF-8 character boundary.
     fn to_bytes32(val: Option<&str>) -> [u8; 32] {
         let mut out = [0u8; 32];
         if let Some(s) = val {
-            let bytes = s.as_bytes();
-            let len = bytes.len().min(32);
-            out[..len].copy_from_slice(&bytes[..len]);
+            let mut offset = 0usize;
+            for ch in s.chars() {
+                let len = ch.len_utf8();
+                if offset + len > 32 {
+                    break;
+                }
+                ch.encode_utf8(&mut out[offset..]);
+                offset += len;
+            }
         }
         out
     }

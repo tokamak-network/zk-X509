@@ -7236,6 +7236,7 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "ureq",
+ "windows-sys 0.59.0",
  "x509-parser",
  "zk-x509-lib",
 ]

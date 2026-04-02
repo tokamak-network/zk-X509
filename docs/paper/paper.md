@@ -61,7 +61,7 @@ zk-X509 is designed to work with **any X.509 certificate from any CA worldwide**
 
 **Primary validation target: Korean NPKI.** Our implementation is validated against the Korean National Public Key Infrastructure (NPKI) as a concrete case study. Korean digital certificates (공인인증서) are issued by authorized CAs such as the Korea Financial Telecommunications and Clearings Institute (금융결제원), employing a 3-level certificate chain (Root CA → Intermediate CA → User Certificate) with RSA-2048 and SHA-256 or SHA-1 signatures. Certificates and private keys are imported into the OS keychain, where the prover application delegates signing to the platform keychain API (macOS Security.framework, Windows CNG) without direct access to the private key material.
 
-**Multi-national deployment.** The architecture supports simultaneous whitelisting of CAs from multiple jurisdictions. For example, a single `IdentityRegistry` deployment could accept certificates from Korean NPKI (~20M users), Estonian eID (~1.3M e-residents), German eID, and corporate PKI systems—each user proving identity under their national CA without any cross-border credential issuance. The `caMerkleRoot` in the public values attests that the certificate was issued by one of the whitelisted CAs without revealing which one, preserving jurisdictional privacy. Applications requiring jurisdiction-specific logic can request the user to additionally disclose `countryHash` via selective disclosure (Section 3.11).
+**Multi-national deployment.** The architecture supports simultaneous whitelisting of CAs from multiple jurisdictions. For example, a single `IdentityRegistry` deployment could accept certificates from Korean NPKI (~20M users), Estonian eID (~1.3M e-residents), German eID, and corporate PKI systems—each user proving identity under their national CA without any cross-border credential issuance. The `caMerkleRoot` in the public values attests that the certificate was issued by one of the whitelisted CAs without revealing which one, preserving jurisdictional privacy. Applications requiring jurisdiction-specific logic can request the user to additionally disclose `country` via selective disclosure (Section 3.11).
 
 ### 1.5 Contributions
 
@@ -268,17 +268,16 @@ Step 4.  Z:        // Parse and validate user certificate
                    // Verify CA Merkle membership (Section 3.12)
                    Assert: MerkleVerify(caRootHash, ca_merkle_proof, ca_merkle_root)
 
-                   // Selective disclosure (salted with private-key-derived salt)
-                   disclosure_salt ← H("zk-X509-Disclosure-Salt-v1" ‖ nullifier_sig)
-                   countryHash  ← (mask & 0x01) ? H(cert.subject.C ‖ disclosure_salt)  : 0x0
-                   orgHash      ← (mask & 0x02) ? H(cert.subject.O ‖ disclosure_salt)  : 0x0
-                   orgUnitHash  ← (mask & 0x04) ? H(cert.subject.OU ‖ disclosure_salt) : 0x0
-                   commonNameHash ← (mask & 0x08) ? H(cert.subject.CN ‖ disclosure_salt) : 0x0
+                   // Selective disclosure (plaintext, right-padded to bytes32)
+                   country    ← (mask & 0x01) ? to_bytes32(cert.subject.C)  : 0x0
+                   org        ← (mask & 0x02) ? to_bytes32(cert.subject.O)  : 0x0
+                   orgUnit    ← (mask & 0x04) ? to_bytes32(cert.subject.OU) : 0x0
+                   commonName ← (mask & 0x08) ? to_bytes32(cert.subject.CN) : 0x0
 
                    // Commit public values (caMerkleRoot, NOT caRootHash)
                    Commit(nullifier, ca_merkle_root, t, addr, wallet_index,
                           notAfter, chain_id, registry_address, crl_merkle_root,
-                          countryHash, orgHash, orgUnitHash, commonNameHash)
+                          country, org, orgUnit, commonName)
 
 Step 5.  Z → S:   (π, pubvals)
                    where π is the ZK proof, pubvals = ABI(nullifier, caMerkleRoot, t, addr, ...)
@@ -291,7 +290,7 @@ Step 7.  P → V:   register(π, pubvals)
 Step 8.  V:        // On-chain verification
                    (nullifier, caMerkleRoot, t_proof, registrant, walletIndex,
                     notAfter, chainId, registryAddress, crlMerkleRoot,
-                    countryHash, orgHash, orgUnitHash, commonNameHash)
+                    country, org, orgUnit, commonName)
                      ← ABI.Decode(pubvals)
                    Assert: registrant = msg.sender              // front-running
                    Assert: t_proof ≤ block.timestamp             // no future proofs
@@ -327,14 +326,14 @@ struct PublicValuesStruct {
     uint64  chainId;         // EIP-155 chain ID
     address registryAddress; // Target registry contract address
     bytes32 crlMerkleRoot;   // CRL Sorted Merkle Tree root (bytes32(0) = disabled)
-    bytes32 countryHash;     // H(country ‖ salt) or 0x0 if not disclosed
-    bytes32 orgHash;         // H(organization ‖ salt) or 0x0 if not disclosed
-    bytes32 orgUnitHash;     // H(organizational unit ‖ salt) or 0x0 if not disclosed
-    bytes32 commonNameHash;  // H(common name ‖ salt) or 0x0 if not disclosed
+    bytes32 country;         // UTF-8 plaintext right-padded or 0x0 if not disclosed
+    bytes32 org;             // UTF-8 plaintext right-padded or 0x0 if not disclosed
+    bytes32 orgUnit;         // UTF-8 plaintext right-padded or 0x0 if not disclosed
+    bytes32 commonName;      // UTF-8 plaintext right-padded or 0x0 if not disclosed
 }
 ```
 
-This struct is ABI-encoded using `alloy-sol-types` in Rust and ABI-decoded in Solidity, ensuring binary compatibility across the stack. The `caMerkleRoot` field replaces a direct `caRootHash` with the Merkle root of the whitelisted CA set, hiding which specific CA issued the certificate (Section 3.12). The `walletIndex` field enables configurable multi-wallet registration (Section 3.6). The `notAfter` field enables automatic identity expiry (Section 3.9). The `chainId` and `registryAddress` fields ensure that each blockchain and each contract deployment produces distinct nullifiers. This design intentionally prevents cross-chain identity portability, as different chains may have different trust requirements, regulatory environments, and economic models. A user must register separately on each chain, enabling per-chain and per-DApp Sybil resistance policies. The `crlMerkleRoot` field commits the CRL Sorted Merkle Tree root, enabling on-chain validation of revocation checking (`bytes32(0)` disables CRL enforcement). The four disclosure hash fields enable selective attribute disclosure (Section 3.11) — each field is either the SHA-256 hash of the corresponding certificate attribute salted with a private-key-derived salt (when disclosed) or zero (when hidden), controlled by the user's `disclosure_mask`.
+This struct is ABI-encoded using `alloy-sol-types` in Rust and ABI-decoded in Solidity, ensuring binary compatibility across the stack. The `caMerkleRoot` field replaces a direct `caRootHash` with the Merkle root of the whitelisted CA set, hiding which specific CA issued the certificate (Section 3.12). The `walletIndex` field enables configurable multi-wallet registration (Section 3.6). The `notAfter` field enables automatic identity expiry (Section 3.9). The `chainId` and `registryAddress` fields ensure that each blockchain and each contract deployment produces distinct nullifiers. This design intentionally prevents cross-chain identity portability, as different chains may have different trust requirements, regulatory environments, and economic models. A user must register separately on each chain, enabling per-chain and per-DApp Sybil resistance policies. The `crlMerkleRoot` field commits the CRL Sorted Merkle Tree root, enabling on-chain validation of revocation checking (`bytes32(0)` disables CRL enforcement). The four disclosure fields enable selective attribute disclosure (Section 3.11) — each field is either the UTF-8 plaintext of the corresponding certificate attribute right-padded to bytes32 (when disclosed) or zero (when hidden), controlled by the user's `disclosure_mask`.
 
 ### 3.4 ZK Guest Program
 
@@ -380,7 +379,7 @@ The program receives 23 inputs via SP1 stdin, organized into three groups:
 | `crl_left_index` | `u32` | Private | Index of left neighbor in sorted tree |
 | `crl_right_index` | `u32` | Private | Index of right neighbor in sorted tree |
 
-The circuit asserts `wallet_index < max_wallets` before proceeding. All private inputs remain hidden within the ZK proof. The thirteen public values committed are: nullifier, caMerkleRoot, timestamp, registrant, walletIndex, notAfter, chainId, registryAddress, crlMerkleRoot, and four selective disclosure hashes (countryHash, orgHash, orgUnitHash, commonNameHash — zero when not disclosed).
+The circuit asserts `wallet_index < max_wallets` before proceeding. All private inputs remain hidden within the ZK proof. The thirteen public values committed are: nullifier, caMerkleRoot, timestamp, registrant, walletIndex, notAfter, chainId, registryAddress, crlMerkleRoot, and four selective disclosure fields (country, org, orgUnit, commonName — zero when not disclosed).
 
 **Certificate Parsing.** We use the `x509-parser` crate (v0.16) with `default-features = false` to parse DER-encoded certificates. Disabling default features avoids the `ring` cryptography library, which contains platform-specific assembly incompatible with the RISC-V zkVM target.
 
@@ -545,11 +544,11 @@ zk-X509 implements selective disclosure via a `disclosure_mask` bitmask input to
 | 2 | Organizational Unit (OU) | 2.5.4.11 | "개인", "Engineering" |
 | 3 | Common Name (CN) | 2.5.4.3 | (user's name — typically hidden) |
 
-For each bit set in the mask, the circuit extracts the corresponding field from the certificate's subject DN, hashes it with a **private-key-derived salt**, and commits the hash as a public value. For unset bits, zero is committed. The salt is computed as $\mathcal{H}(\text{"zk-X509-Disclosure-Salt-v1"} \| \text{nullifier\_sig})$, where `nullifier_sig` is the deterministic signature used for nullifier generation. This salt is deterministic (same certificate always produces the same salt) yet private (only the private key holder can compute `nullifier_sig`), preventing brute-force attacks on small input spaces such as country codes (~200 values). Without this salt, an attacker could precompute $\mathcal{H}(\text{"KR"})$, $\mathcal{H}(\text{"US"})$, etc., and match against on-chain `countryHash` values. With the salt, each user's hashes are unique and unpredictable.
+For each bit set in the mask, the circuit extracts the corresponding field from the certificate's subject DN, encodes it as **UTF-8 plaintext right-padded to bytes32**, and commits it as a public value. For unset bits, zero is committed. This plaintext model simplifies on-chain verification — smart contracts can directly compare disclosed values (e.g., `country == bytes32("KR")`) without requiring hash preimage knowledge or salt coordination.
 
-**User sovereignty.** The `disclosure_mask` is chosen by the user at proof generation time, not by the verifier. The same certificate can produce different proofs for different applications: a DAO voting contract may require only `countryHash`, while a corporate DeFi protocol may additionally require `orgHash`. The user decides what to reveal on a per-proof basis.
+**User sovereignty.** The `disclosure_mask` is chosen by the user at proof generation time, not by the verifier. The same certificate can produce different proofs for different applications: a DAO voting contract may require only `country`, while a corporate DeFi protocol may additionally require `org`. The user decides what to reveal on a per-proof basis.
 
-**Privacy guarantee.** Fields with mask bit = 0 produce a zero hash in the public values, revealing no information. The ZK zero-knowledge property ensures that even the *existence* of undisclosed fields is hidden — the verifier cannot distinguish "field is empty in the certificate" from "field exists but was not disclosed."
+**Privacy guarantee.** Fields with mask bit = 0 produce a zero value in the public values, revealing no information. The ZK zero-knowledge property ensures that even the *existence* of undisclosed fields is hidden — the verifier cannot distinguish "field is empty in the certificate" from "field exists but was not disclosed."
 
 ### 3.12 CA-Anonymous Verification via Merkle Tree
 
@@ -578,7 +577,7 @@ zk-X509 addresses this by replacing the direct `caRootHash` output with a **Merk
 |--------|------------------------|------------|
 | Registration timing | Correlate registration timestamp with CA issuance patterns (e.g., Korean banking hours) | Randomized proof submission delays |
 | Gas payment source | Trace ETH funding of the registrant address to a jurisdiction | Use fresh wallets funded via privacy-preserving bridges |
-| Selective disclosure | `countryHash` directly reveals jurisdiction, reducing anonymity set to single-country users | User-controlled — do not disclose unless required |
+| Selective disclosure | `country` directly reveals jurisdiction, reducing anonymity set to single-country users | User-controlled — do not disclose unless required |
 | Transaction volume | Low-population CAs (e.g., Estonia ~1.3M) have fewer active blockchain users, making correlation easier | Whitelist CAs with large user populations |
 | Certificate expiry patterns | `notAfter` timestamp may correlate with CA-specific validity periods (e.g., Korean NPKI: 1 year, Estonian eID: 5 years) | Round `notAfter` to coarser granularity (future work) |
 

@@ -57,12 +57,12 @@ Verification inside zkVM:
   Step 6: Verify nullifier signature + compute nullifier
   Step 7: Verify CA Merkle membership
   Step 8: Commit public values
-  Step 9: Selective disclosure hashing
+  Step 9: Selective disclosure (plaintext in bytes32)
 
 Output (public values):
   nullifier, caMerkleRoot, timestamp, registrant, walletIndex,
   notAfter, chainId, registryAddress, crlMerkleRoot,
-  countryHash, orgHash, orgUnitHash, commonNameHash
+  country, org, orgUnit, commonName
 ```
 
 ### Step 8-12: Smart Contract
@@ -98,10 +98,10 @@ uint64  notAfter        — Certificate expiry (auto-expire on-chain)
 uint64  chainId         — EIP-155 chain ID (cross-chain replay defense)
 address registryAddress  — Target registry (cross-DApp unlinkability)
 bytes32 crlMerkleRoot   — CRL sorted Merkle root (bytes32(0) = disabled)
-bytes32 countryHash     — H(len ‖ "KR" ‖ salt) or bytes32(0)
-bytes32 orgHash         — H(len ‖ "yessign" ‖ salt) or bytes32(0)
-bytes32 orgUnitHash     — H(len ‖ "personal4IB" ‖ salt) or bytes32(0)
-bytes32 commonNameHash  — H(len ‖ "Hong Gildong" ‖ salt) or bytes32(0)
+bytes32 country         — UTF-8 plaintext right-padded, e.g. "KR" or bytes32(0)
+bytes32 org             — UTF-8 plaintext right-padded, e.g. "yessign" or bytes32(0)
+bytes32 orgUnit         — UTF-8 plaintext right-padded, e.g. "personal4IB" or bytes32(0)
+bytes32 commonName      — UTF-8 plaintext right-padded, e.g. "Hong Gildong" or bytes32(0)
 ```
 
 ### Nullifier Design
