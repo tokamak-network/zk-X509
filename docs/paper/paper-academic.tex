@@ -1426,12 +1426,20 @@ witness inputs.
 \subsection{Selective Attribute
 Disclosure}\label{selective-attribute-disclosure}
 
-Prior sections describe a binary identity model: the verifier learns
-only ``this wallet holds a valid certificate'' without any attributes.
-While this suffices for simple Sybil resistance, real-world applications
-often require \textbf{granular attribute verification}: ``this user is
-from country X'' or ``this user belongs to organization Y'' --- without
-revealing other attributes like name or ID number.
+Prior sections describe a binary identity model: the on-chain verifier
+learns only ``this wallet holds a valid certificate'' without any
+attributes. While this suffices for simple Sybil resistance,
+on-chain services---particularly DeFi lending protocols, DAO governance,
+and compliance-sensitive applications---often need the same granular
+identity attributes that off-chain services already rely on:
+jurisdiction, organizational affiliation, and entity type (individual vs.
+business). These attributes exist in X.509 certificates but are locked
+inside the ZK proof unless explicitly disclosed.
+The challenge is to make \textbf{certificate attributes directly
+available on-chain}, so that smart contracts can enforce real-world
+policies---such as jurisdiction-restricted lending or business-only
+registration---without off-chain oracle dependencies or additional KYC
+rounds.
 
 zk-X509 implements selective disclosure via a \texttt{disclosure\_mask}
 bitmask input to the ZK circuit:
@@ -1456,18 +1464,26 @@ committed. Values exceeding 32 bytes are truncated, which is sufficient
 for practical fields (country codes are 2 bytes; Korean organization
 names are typically under 30 bytes in UTF-8).
 
-This design intentionally reveals the \emph{actual} field value rather
-than a hash, because disclosure means the user consents to public
-visibility. Service operators can directly read disclosed fields on-chain
-(e.g., filtering by country or distinguishing individual from business
-certificates via the Organization field).
+\textbf{Plaintext disclosure by design.} Disclosed fields are committed
+as readable plaintext rather than hashes, because disclosure represents
+explicit user consent to public visibility. This is a deliberate design
+choice: off-chain services already operate on plaintext attributes
+(e.g., KYC databases store ``Country: KR'', not a hash), and on-chain
+services need the same fidelity to replicate off-chain business logic.
+A DeFi lending protocol can read the \texttt{country} field to enforce
+jurisdiction-specific regulations; a DAO can read \texttt{org} to verify
+corporate membership---all on-chain, without external oracle calls or
+off-chain verification rounds.
 
 \textbf{User sovereignty.} The \texttt{disclosure\_mask} is chosen by
-the user at proof generation time, not by the verifier. The same
+the user at proof generation time, not by the service. The same
 certificate can produce different proofs for different applications: a
 DAO voting contract may require only country disclosure, while a
 corporate DeFi protocol may additionally require organization disclosure.
-The user decides what to reveal on a per-proof basis.
+The user decides what to reveal on a per-proof basis. Services specify
+their minimum requirements via \texttt{minDisclosureMask}; the user must
+meet or exceed these requirements, but may disclose additional fields
+voluntarily.
 
 \textbf{Privacy guarantee.} Fields with mask bit = 0 produce zero
 in the public values, revealing no information. The ZK zero-knowledge
@@ -1475,12 +1491,16 @@ property ensures that even the \emph{existence} of undisclosed fields is
 hidden --- the verifier cannot distinguish ``field is empty in the
 certificate'' from ``field exists but was not disclosed.''
 
-\textbf{Business identity use case.} By requiring disclosure of the
-Organization (O) field (\texttt{minDisclosureMask} bit 1), a service can
-distinguish individual certificates (\texttt{org} = \texttt{0x0},
-since individual certificates lack an Organization field) from business
-certificates (\texttt{org} $\neq$ \texttt{0x0}). This enables
-policies such as ``only business entities may register.''
+\textbf{Entity type classification.} In government-issued PKI systems
+such as Korean NPKI, the Organization (O) field distinguishes certificate
+types: individual certificates lack an Organization field, while business
+certificates (sole proprietors and corporations) include one. By
+requiring O field disclosure (\texttt{minDisclosureMask} bit 1), a
+service can enforce entity-level policies on-chain---for example,
+``only business entities may register''---by checking whether
+\texttt{org} is zero (individual) or non-zero (business). This mirrors
+the off-chain KYC distinction between personal and business accounts,
+now enforceable trustlessly on-chain via a single ZK proof.
 
 \subsection{CA-Anonymous Verification via Merkle
 Tree}\label{ca-anonymous-verification-via-merkle-tree}
