@@ -336,9 +336,15 @@ This paper makes the following contributions:
   verification pipeline supporting full certificate chain verification
   (RSA and ECDSA), trustless CRL checking, signature-based ownership
   (private key never enters zkVM), registrant binding, configurable
-  multi-wallet registration, automatic identity expiry, selective
-  attribute disclosure, CA-anonymous verification via Merkle tree, and
-  self-service wallet migration.
+  multi-wallet registration, automatic identity expiry, plaintext
+  selective attribute disclosure, CA-anonymous verification via Merkle
+  tree, and self-service wallet migration.
+\item
+  A \textbf{multi-tenant platform} where each on-chain service deploys
+  its own identity registry with independent policies---disclosure
+  requirements, wallet limits, CA whitelists---enabling certificate
+  attributes to be directly consumed by smart contracts for compliance
+  and business logic.
 \item
   A \textbf{working implementation} using the SP1 zkVM for
   zero-knowledge computation, with Solidity smart contracts for on-chain
@@ -1258,6 +1264,57 @@ Emergency stop mechanism to halt all registrations. -
 \textbf{\texttt{transferOwnership(address)} /
 \texttt{acceptOwnership()}}: Two-step ownership transfer preventing
 accidental transfers.
+
+\subsection{Multi-Tenant Platform}\label{multi-tenant-platform}
+
+A single \texttt{IdentityRegistry} instance serves one service with one
+policy. In practice, different services require fundamentally different
+identity policies:
+
+\begin{table}[ht]
+\centering
+\small
+\caption{Example service configurations on the zk-X509 platform.}
+\label{tab:platform-examples}
+\begin{tabular}{@{}llll@{}}
+\toprule
+Service & Wallets & Disclosure & CA Policy \\
+\midrule
+DAO voting & 1 & None (\texttt{0x00}) & Korean NPKI only \\
+DeFi lending & 3 & Country + Org (\texttt{0x03}) & Global CAs \\
+Corporate portal & 1 & All (\texttt{0x0F}) & Internal CA only \\
+Airdrop & 1 & None (\texttt{0x00}) & Any government CA \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The \texttt{RegistryFactory} contract provides a self-service platform
+where any operator can deploy and manage their own
+\texttt{IdentityRegistry} via a single \texttt{createRegistry()} call.
+All registries share the same SP1 verifier and ZK program verification
+key (centrally managed by the factory owner), but each registry has its
+own administrator, CA whitelist, disclosure policy, and registration
+rules. Registries are deployed as Beacon Proxies, enabling the factory
+owner to upgrade the implementation for all registries simultaneously.
+
+\textbf{Per-service policy.} At deployment, each service operator
+configures registration policy: wallet limits (Section
+\ref{configurable-registration-policy}), attribute disclosure
+requirements (Section \ref{selective-attribute-disclosure}), proof
+freshness window, and CA whitelist. These parameters are immutable per
+registry, ensuring that policy cannot change after users have registered
+under a given set of rules.
+
+\textbf{Shared infrastructure.} The ZK program verification key
+(\texttt{programVKey}) is managed at the factory level. When the ZK
+program is upgraded (e.g., to support new signature algorithms), the
+factory owner updates the key once, and all registries read the current
+key from the factory via a cross-contract call. This eliminates the need
+to update each registry individually.
+
+This architecture transforms zk-X509 from a single-purpose contract
+into a platform that diverse on-chain services can adopt, each with
+policies tailored to their specific compliance and business requirements.
 
 \subsection{Configurable Registration
 Policy}\label{configurable-registration-policy}
