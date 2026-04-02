@@ -15,10 +15,10 @@ struct PublicValues {
     uint64 chainId;
     address registryAddress;
     bytes32 crlMerkleRoot;
-    bytes32 countryHash;
-    bytes32 orgHash;
-    bytes32 orgUnitHash;
-    bytes32 commonNameHash;
+    bytes32 country;
+    bytes32 org;
+    bytes32 orgUnit;
+    bytes32 commonName;
 }
 
 /// @dev Minimal interface for reading vkey from RegistryFactory (avoids circular import).
@@ -247,10 +247,10 @@ contract IdentityRegistry is Initializable {
         // Check minimum disclosure mask: each required bit must have a non-zero hash
         if (MIN_DISCLOSURE_MASK != 0) {
             uint8 actualMask = 0;
-            if (pv.countryHash != bytes32(0)) actualMask |= 0x01;
-            if (pv.orgHash != bytes32(0)) actualMask |= 0x02;
-            if (pv.orgUnitHash != bytes32(0)) actualMask |= 0x04;
-            if (pv.commonNameHash != bytes32(0)) actualMask |= 0x08;
+            if (pv.country != bytes32(0)) actualMask |= 0x01;
+            if (pv.org != bytes32(0)) actualMask |= 0x02;
+            if (pv.orgUnit != bytes32(0)) actualMask |= 0x04;
+            if (pv.commonName != bytes32(0)) actualMask |= 0x08;
             if ((actualMask & MIN_DISCLOSURE_MASK) != MIN_DISCLOSURE_MASK) {
                 revert InsufficientDisclosure(actualMask, MIN_DISCLOSURE_MASK);
             }

@@ -896,20 +896,20 @@ contract IdentityRegistryTest is Test {
 
     function _pvWithDisclosure(
         bytes32 nullifier, bytes32 caRoot, address sender,
-        bytes32 countryHash, bytes32 orgHash, bytes32 orgUnitHash, bytes32 cnHash,
+        bytes32 country, bytes32 org, bytes32 orgUnit, bytes32 cn,
         address target
     ) internal view returns (bytes memory) {
         return abi.encode(nullifier, caRoot, uint64(block.timestamp), sender, uint32(0),
             uint64(block.timestamp) + DEFAULT_NOT_AFTER, uint64(block.chainid), target, bytes32(0),
-            countryHash, orgHash, orgUnitHash, cnHash);
+            country, org, orgUnit, cn);
     }
 
-    function test_DisclosureMask_RevertWhenRequiredHashZero() public {
+    function test_DisclosureMask_RevertWhenRequiredFieldZero() public {
         // Deploy registry requiring country disclosure (bit 0 = 0x01)
         IdentityRegistry discReg = _deployRegistry(address(mockVerifier), PROGRAM_V_KEY, 1, 0x01, address(this));
         discReg.updateCaMerkleRoot(CA_MERKLE_ROOT);
 
-        // Public values with countryHash = 0 (not disclosed)
+        // Public values with country = 0 (not disclosed)
         bytes memory pv = _pvWithDisclosure(
             NULLIFIER, CA_MERKLE_ROOT, alice,
             bytes32(0), bytes32(0), bytes32(0), bytes32(0),
@@ -923,12 +923,12 @@ contract IdentityRegistryTest is Test {
         discReg.register(hex"1234", pv);
     }
 
-    function test_DisclosureMask_SucceedsWhenHashProvided() public {
+    function test_DisclosureMask_SucceedsWhenFieldProvided() public {
         // Deploy registry requiring country disclosure (bit 0 = 0x01)
         IdentityRegistry discReg = _deployRegistry(address(mockVerifier), PROGRAM_V_KEY, 1, 0x01, address(this));
         discReg.updateCaMerkleRoot(CA_MERKLE_ROOT);
 
-        // Public values with countryHash set (disclosed)
+        // Public values with country set (disclosed)
         bytes memory pv = _pvWithDisclosure(
             NULLIFIER, CA_MERKLE_ROOT, alice,
             bytes32(uint256(0x1234)), bytes32(0), bytes32(0), bytes32(0),

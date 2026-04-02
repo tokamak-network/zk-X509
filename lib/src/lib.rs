@@ -17,12 +17,10 @@ sol! {
         uint64 chainId;          // EIP-155 chain ID (prevents cross-chain replay)
         address registryAddress; // Target registry address (prevents cross-DApp nullifier reuse)
         bytes32 crlMerkleRoot;  // CRL sorted Merkle root (bytes32(0) = CRL checking disabled)
-        // Selective disclosure: salted hash of each field, or bytes32(0) if not disclosed.
-        // hash = SHA-256(len1 ‖ val1 ‖ ... ‖ disclosure_salt) — length-prefixed
-        // disclosure_salt = H("zk-X509-Disclosure-Salt-v1" ‖ nullifier_sig) — deterministic, private
-        bytes32 countryHash;     // SHA-256(len ‖ "KR" ‖ salt) or bytes32(0)
-        bytes32 orgHash;         // SHA-256(len ‖ "yessign" ‖ salt) or bytes32(0)
-        bytes32 orgUnitHash;     // SHA-256(len ‖ "personal4IB" ‖ ... ‖ salt) or bytes32(0)
-        bytes32 commonNameHash;  // SHA-256(len ‖ "Hong Gildong" ‖ salt) or bytes32(0)
+        // Selective disclosure: UTF-8 plaintext right-padded to bytes32, or bytes32(0) if not disclosed.
+        bytes32 country;         // e.g., "KR" or bytes32(0)
+        bytes32 org;             // e.g., "Samsung" or bytes32(0)
+        bytes32 orgUnit;         // e.g., "Engineering" or bytes32(0)
+        bytes32 commonName;      // e.g., "Hong Gildong" or bytes32(0)
     }
 }

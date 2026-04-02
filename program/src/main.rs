@@ -658,7 +658,7 @@ pub fn main() {
     // ========================================
     // Disclosure ON  → UTF-8 plaintext right-padded to bytes32 (truncated at 32 bytes)
     // Disclosure OFF → bytes32(0)
-    let (country_hash, org_hash, org_unit_hash, cn_hash) =
+    let (country_val_b32, org_val_b32, org_unit_val_b32, cn_val_b32) =
         extract_subject_fields(&user_cert.subject(), disclosure_mask);
 
     let bytes = PublicValuesStruct::abi_encode(&PublicValuesStruct {
@@ -671,10 +671,10 @@ pub fn main() {
         chainId: chain_id,
         registryAddress: alloy_sol_types::private::Address::from_slice(&registry_address),
         crlMerkleRoot: crl_merkle_root.into(),
-        countryHash: country_hash.into(),
-        orgHash: org_hash.into(),
-        orgUnitHash: org_unit_hash.into(),
-        commonNameHash: cn_hash.into(),
+        country: country_val_b32.into(),
+        org: org_val_b32.into(),
+        orgUnit: org_unit_val_b32.into(),
+        commonName: cn_val_b32.into(),
     });
 
     sp1_zkvm::io::commit_slice(&bytes);

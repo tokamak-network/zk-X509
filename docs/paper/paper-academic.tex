@@ -322,7 +322,7 @@ credential issuance. The \texttt{caMerkleRoot} in the public values
 attests that the certificate was issued by one of the whitelisted CAs
 without revealing which one, preserving jurisdictional privacy.
 Applications requiring jurisdiction-specific logic can request the user
-to additionally disclose \texttt{countryHash} via selective disclosure
+to additionally disclose \texttt{country} via selective disclosure
 (Section 3.11).
 
 \subsection{Contributions}\label{contributions}
@@ -815,10 +815,10 @@ Field & Type & Description \\
 \texttt{chainId} & \texttt{uint64} & EIP-155 chain ID \\
 \texttt{registryAddress} & \texttt{address} & Target registry address \\
 \texttt{crlMerkleRoot} & \texttt{bytes32} & CRL Merkle root (\texttt{0} = disabled) \\
-\texttt{countryHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
-\texttt{orgHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
-\texttt{orgUnitHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
-\texttt{commonNameHash} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{country} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{org} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{orgUnit} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
+\texttt{commonName} & \texttt{bytes32} & UTF-8 plaintext (right-padded) or \texttt{0x0} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -983,8 +983,8 @@ The circuit asserts \texttt{wallet\_index\ \textless{}\ max\_wallets}
 before proceeding. All private inputs remain hidden within the ZK proof.
 The thirteen public values committed are: nullifier, caMerkleRoot,
 timestamp, registrant, walletIndex, notAfter, chainId, registryAddress,
-crlMerkleRoot, and four selective disclosure fields (countryHash,
-orgHash, orgUnitHash, commonNameHash --- UTF-8 plaintext in bytes32 when
+crlMerkleRoot, and four selective disclosure fields (country,
+org, orgUnit, commonName --- UTF-8 plaintext in bytes32 when
 disclosed, zero when hidden).
 
 \textbf{Certificate Parsing.} We use the \texttt{x509-parser} crate
@@ -1477,9 +1477,9 @@ certificate'' from ``field exists but was not disclosed.''
 
 \textbf{Business identity use case.} By requiring disclosure of the
 Organization (O) field (\texttt{minDisclosureMask} bit 1), a service can
-distinguish individual certificates (\texttt{orgHash} = \texttt{0x0},
+distinguish individual certificates (\texttt{org} = \texttt{0x0},
 since individual certificates lack an Organization field) from business
-certificates (\texttt{orgHash} $\neq$ \texttt{0x0}). This enables
+certificates (\texttt{org} $\neq$ \texttt{0x0}). This enables
 policies such as ``only business entities may register.''
 
 \subsection{CA-Anonymous Verification via Merkle
