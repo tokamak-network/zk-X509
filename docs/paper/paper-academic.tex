@@ -346,6 +346,12 @@ This paper makes the following contributions:
   attributes to be directly consumed by smart contracts for compliance
   and business logic.
 \item
+  A \textbf{consent-based delegated proving} mechanism that enables
+  regulatory compliance without protocol modification: service operators
+  can require proof generation via their server (observing user identity)
+  while the user's private key never leaves the OS keychain, with
+  consent cryptographically signed by the certificate's private key.
+\item
   A \textbf{working implementation} using the SP1 zkVM for
   zero-knowledge computation, with Solidity smart contracts for on-chain
   verification, on-chain CA list management with auto-computed Merkle
@@ -1479,6 +1485,73 @@ data. This provides a stronger security model in the dimension of
 private key exposure: no credential secret enters the ZK circuit,
 whereas other systems require at least some private credential data as
 witness inputs.
+
+\subsection{Delegated Proving for
+Compliance}\label{delegated-proving-for-compliance}
+
+The private key isolation architecture (Section
+\ref{private-key-isolation}) creates a unique opportunity for regulatory
+compliance. Because proof generation requires only the certificate, the
+certificate chain, and pre-computed signature bytes---but never the
+private key---it is inherently safe to delegate proof generation to a
+third party. This enables a dual-mode architecture:
+
+\textbf{Local mode (default).} The user generates the ZK proof entirely
+on their own device. Certificate contents, personal identifiers, and all
+sensitive data remain private. No third party observes any identity
+information.
+
+\textbf{Delegated mode (compliance).} The service operator deploys a
+\emph{delegated prover server}. The user transmits the certificate,
+certificate chain, and signature bytes to this server, which generates
+the ZK proof on behalf of the user. The delegated prover observes the
+certificate's identity information (subject name, organization, country,
+issuing CA, validity period) but never receives the private key. The
+operator may record this information in an off-chain compliance log,
+mapping on-chain nullifiers to real-world identities.
+
+\textbf{Consent protocol.} Before any certificate data is transmitted,
+the user must sign a consent message with the \emph{certificate's
+private key} via the OS keychain. The consent message binds to a
+specific prover URL, registry address, chain ID, wallet address, and
+timestamp:
+
+\begin{verbatim}
+zk-x509-delegated-proving-consent
+Prover: [proverUrl]
+Registry: [registryAddress]
+Chain ID: [chainId]
+Wallet: [registrant]
+Timestamp: [unix timestamp]
+\end{verbatim}
+
+The delegated prover verifies this signature against the certificate's
+public key before processing the request. This ensures: (1) only the
+certificate owner---the data subject---can authorize disclosure, (2) the
+consent is scoped to a specific prover and registry (preventing reuse),
+and (3) the consent expires after 10 minutes (preventing replay). No
+certificate data is transmitted before the consent signature is complete.
+
+\textbf{On-chain configuration.} Each \texttt{IdentityRegistry} stores
+two fields: \texttt{delegatedProvingRequired} (bool) and
+\texttt{proverUrl} (string). When \texttt{delegatedProvingRequired} is
+true, the desktop application detects this on-chain and routes the user
+through the consent-based delegated proving flow. When false, local
+proving is used. The service operator can update the prover URL at any
+time via \texttt{setDelegatedProving()}.
+
+\textbf{Protocol equivalence.} The on-chain protocol is identical in
+both modes---the smart contract cannot distinguish a locally generated
+proof from a delegated proof. Privacy guarantees from the perspective
+of on-chain observers (CA anonymity, nullifier unlinkability, attribute
+privacy for undisclosed fields) are fully preserved regardless of the
+proving mode. The compliance disclosure occurs exclusively at the
+off-chain service layer.
+
+This construction enables a single protocol to serve both fully private
+deployments (local proving) and regulated deployments (delegated proving
+with compliance logging), with the compliance posture determined entirely
+by per-service on-chain configuration rather than protocol modification.
 
 \subsection{Selective Attribute
 Disclosure}\label{selective-attribute-disclosure}
