@@ -16,7 +16,7 @@ router.post("/pr", async (req, res) => {
   const {
     chainId, registryAddress, adminAddress, serviceName,
     operation, certs, existingCas,
-    signature, signatureTimestamp, signatureMessage,
+    signature, signatureTimestamp,
   } = req.body as {
     chainId: string;
     registryAddress: string;
@@ -27,11 +27,10 @@ router.post("/pr", async (req, res) => {
     existingCas: Record<string, CaGuide>;
     signature: string;
     signatureTimestamp: number;
-    signatureMessage: string;
   };
 
   // Validate required fields
-  if (!chainId || !registryAddress || !adminAddress || !operation || !signature || !signatureTimestamp || !signatureMessage) {
+  if (!chainId || !registryAddress || !adminAddress || !operation || !signature || !signatureTimestamp) {
     res.status(400).json({ error: "Missing required fields" });
     return;
   }
@@ -60,19 +59,21 @@ router.post("/pr", async (req, res) => {
     }
   }
 
-  // Verify wallet signature — prevents spam PRs from forged requests
-  try {
-    const recovered = verifyMessage(signatureMessage, signature).toLowerCase();
-    if (recovered !== adminAddress.toLowerCase()) {
-      res.status(403).json({ error: "Signature does not match adminAddress" });
-      return;
-    }
-  } catch {
-    res.status(400).json({ error: "Invalid signature" });
+  // Validate signatureTimestamp is a safe integer to prevent NaN bypass
+  if (!Number.isSafeInteger(signatureTimestamp)) {
+    res.status(400).json({ error: "Invalid signatureTimestamp: must be an integer" });
     return;
   }
 
-  // Verify signed message binds to this request's parameters
+  // Reject stale signatures (> 10 minutes)
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - signatureTimestamp) > 600) {
+    res.status(400).json({ error: "Signature expired (>10 min)" });
+    return;
+  }
+
+  // Reconstruct the expected message from request parameters and verify
+  // the signature directly against it — prevents parameter tampering
   const expectedMessage = [
     "zk-x509-ca-registry",
     `Chain ID: ${chainId}`,
@@ -81,15 +82,15 @@ router.post("/pr", async (req, res) => {
     `Operation: ${operation}`,
     `Timestamp: ${signatureTimestamp}`,
   ].join("\n");
-  if (signatureMessage !== expectedMessage) {
-    res.status(400).json({ error: "Signature message does not match request parameters" });
-    return;
-  }
 
-  // Reject stale signatures (> 10 minutes)
-  const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - signatureTimestamp) > 600) {
-    res.status(400).json({ error: "Signature expired (>10 min)" });
+  try {
+    const recovered = verifyMessage(expectedMessage, signature).toLowerCase();
+    if (recovered !== adminAddress.toLowerCase()) {
+      res.status(403).json({ error: "Signature does not match adminAddress" });
+      return;
+    }
+  } catch {
+    res.status(400).json({ error: "Invalid signature" });
     return;
   }
 
@@ -133,7 +134,7 @@ router.post("/pr", async (req, res) => {
     // Build signature.json (format required by validate.py)
     const signedAt = new Date(signatureTimestamp * 1000).toISOString().replace(/\.\d{3}Z$/, "+00:00");
     const signatureJson = JSON.stringify({
-      message: signatureMessage,
+      message: expectedMessage,
       signature,
       address: adminAddress.toLowerCase(),
       operation,

@@ -234,7 +234,6 @@ export async function createCaRegistryPrViaServer(params: {
   existingCas: Record<string, CaGuide>;
   signature: string;
   signatureTimestamp: number;
-  signatureMessage: string;
 }): Promise<{ prUrl: string; prNumber: number }> {
   const res = await fetch(`${BACKEND_URL}/api/ca-registry/pr`, {
     method: "POST",

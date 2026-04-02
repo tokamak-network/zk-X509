@@ -88,7 +88,7 @@ export default function CaRegistrationModal({
 
       // Create PR — separate error handling so TX success is preserved
       try {
-        await createPr(sig, timestamp, message);
+        await createPr(sig, timestamp);
       } catch (prError: unknown) {
         setErrorMsg(prError instanceof Error ? prError.message : "Failed to create PR");
         setStep(txHash ? "partial" : "error");
@@ -99,7 +99,7 @@ export default function CaRegistrationModal({
     }
   };
 
-  const createPr = async (sig: string, timestamp: number, msg: string) => {
+  const createPr = async (sig: string, timestamp: number) => {
     try {
       const result = await createCaRegistryPrViaServer({
         chainId,
@@ -111,7 +111,6 @@ export default function CaRegistrationModal({
         existingCas,
         signature: sig,
         signatureTimestamp: timestamp,
-        signatureMessage: msg,
       });
       setPrUrl(result.prUrl);
       setStep("done");
