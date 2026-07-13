@@ -1,5 +1,5 @@
 {
   "projects": {
-    "default": "zkscatter"
+    "default": "zk-x509"
   }
 }

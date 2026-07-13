@@ -107,7 +107,7 @@ Point it at Sepolia in the connect step:
 ### Run the web frontend locally (Sepolia contracts + hosted backend)
 
 No local node, contract deploy, or backend is needed — point the frontend at the
-live Sepolia contracts above and the deployed `zkscatter` backend. Create
+live Sepolia contracts above and the deployed `zk-x509` backend. Create
 `frontend/.env.local` (it is git-ignored, so it is not committed):
 
 ```bash
@@ -120,7 +120,7 @@ NEXT_PUBLIC_SP1_VERIFIER_ADDRESS="0x261a1619cC63273de7c64872B769305732761888"
 # users registry
 NEXT_PUBLIC_REGISTRY_ADDRESS="0x3cF6A96f1970053ffDf957074F988aD53D13ada3"
 # deployed backend (announcements + registry metadata)
-NEXT_PUBLIC_BACKEND_URL="https://zkscatter.web.app"
+NEXT_PUBLIC_BACKEND_URL="https://zk-x509.web.app"
 # Optional — CA guides source; defaults to the public zk-x509-ca-registry repo:
 # NEXT_PUBLIC_CA_REGISTRY_URL="https://raw.githubusercontent.com/tokamak-network/zk-x509-ca-registry/main"
 ```
@@ -131,7 +131,7 @@ Then install and run the dev server:
 cd frontend
 npm install
 npm run dev
-# → http://localhost:3000 (Next.js), talking to Sepolia + the zkscatter backend
+# → http://localhost:3000 (Next.js), talking to Sepolia + the zk-x509 backend
 ```
 
 > The addresses match [`deployments/11155111.json`](deployments/11155111.json).
